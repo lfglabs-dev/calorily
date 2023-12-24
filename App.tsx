@@ -1,20 +1,59 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import 'react-native-gesture-handler';
+import React from "react";
+import {
+  NavigationContainer,
+  DefaultTheme,
+  DarkTheme,
+} from "@react-navigation/native";
+import { useColorScheme } from "react-native";
+import { StatusBar } from "expo-status-bar";
+
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import Progress from "./components/screens/Progress";
+import Summary from "./components/screens/Summary";
+import Settings from "./components/screens/Settings";
+
+const Tab = createBottomTabNavigator();
 
 export default function App() {
+  const scheme = useColorScheme();
+  const theme = scheme === "dark" ? DarkTheme : DefaultTheme;
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
+    <NavigationContainer theme={theme}>
       <StatusBar style="auto" />
-    </View>
+      <Tab.Navigator>
+        <Tab.Screen
+          name="Summary"
+          component={Summary}
+          options={{
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => (
+              <FontAwesome name="cutlery" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Progress"
+          component={Progress}
+          options={{
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => (
+              <FontAwesome name="area-chart" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tab.Screen
+          name="Settings"
+          component={Settings}
+          options={{
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => (
+              <FontAwesome name="cog" color={color} size={size} />
+            ),
+          }}
+        />
+      </Tab.Navigator>
+    </NavigationContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
