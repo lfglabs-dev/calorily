@@ -27,11 +27,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: "./assets/favicon.png",
   },
   plugins: [
-    [
-      "expo-camera",
-      {
-        cameraPermission: "Allow DietGPT to access your camera.",
-      },
-    ],
+    // [
+    //   "expo-camera",
+    //   {
+    //     cameraPermission: "Allow DietGPT to access your camera.",
+    //   },
+    // ],
   ],
 });

@@ -9,7 +9,6 @@ import {
 import CaloriesInCard from "../cards/CaloriesIn";
 import CaloriesOutCard from "../cards/CaloriesOut";
 import PastMeals from "../cards/PastMeals";
-import BottomSheet from '@gorhom/bottom-sheet';
 
 const Summary = () => {
   const scheme = useColorScheme();
@@ -47,17 +46,6 @@ const Summary = () => {
     console.log("Add Meal");
   };
 
-  // ref
-  const bottomSheetRef = useRef<BottomSheet>(null);
-
-  // variables
-  const snapPoints = useMemo(() => ['25%', '50%'], []);
-
-  // callbacks
-  const handleSheetChanges = useCallback((index: number) => {
-    console.log('handleSheetChanges', index);
-  }, []);
-
   return (
     <View style={dynamicStyles.container}>
       <Text style={dynamicStyles.title}>Summary</Text>
@@ -67,16 +55,6 @@ const Summary = () => {
       <TouchableOpacity style={dynamicStyles.addButton} onPress={handleAddMeal}>
         <Text style={dynamicStyles.addButtonText}>Add Meal</Text>
       </TouchableOpacity>
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={1}
-        snapPoints={snapPoints}
-        onChange={handleSheetChanges}
-      >
-        <View style={styles.contentContainer}>
-          <Text>Awesome 🎉</Text>
-        </View>
-      </BottomSheet>
     </View>
   );
 };
@@ -86,10 +64,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
-    backgroundColor: 'grey',
+    backgroundColor: "grey",
   },
   contentContainer: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
 });
