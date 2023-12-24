@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import PastMeals from "../cards/PastMeals";
 
 const Summary = () => {
   const scheme = useColorScheme();
+  const [showAddMeal, setShowAddMeal] = useState(false);
   const dynamicStyles = StyleSheet.create({
     container: {
       flex: 1,
@@ -42,17 +43,19 @@ const Summary = () => {
     },
   });
 
-  const handleAddMeal = () => {
-    console.log("Add Meal");
-  };
-
   return (
     <View style={dynamicStyles.container}>
       <Text style={dynamicStyles.title}>Summary</Text>
       <CaloriesInCard />
       <CaloriesOutCard />
       <PastMeals />
-      <TouchableOpacity style={dynamicStyles.addButton} onPress={handleAddMeal}>
+      {showAddMeal ? null : null}
+      <TouchableOpacity
+        style={dynamicStyles.addButton}
+        onPress={() => {
+          setShowAddMeal(true);
+        }}
+      >
         <Text style={dynamicStyles.addButtonText}>Add Meal</Text>
       </TouchableOpacity>
     </View>
