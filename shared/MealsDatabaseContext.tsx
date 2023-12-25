@@ -1,14 +1,17 @@
-import React, { ReactNode, createContext, useContext, useEffect } from "react";
+import React, {
+  ReactNode,
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import * as SQLite from "expo-sqlite";
 
 const db = SQLite.openDatabase("meals.db");
 
-type Meal = {
+type Meal = Macro & {
   name: string;
   type: string;
-  carbs: number;
-  proteins: number;
-  fats: number;
   timestamp: number;
 };
 
@@ -57,12 +60,14 @@ const insertMealAsync = async (meal: Meal): Promise<void> => {
   });
 };
 
-const fetchLastMealsAsync = async (n: number): Promise<MealEntry[]> => {
+const fetchDailyMealsAsync = async (): Promise<MealEntry[]> => {
+  const startOfToday = new Date();
+  startOfToday.setHours(2, 0, 0, 0);
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        "SELECT * FROM meals ORDER BY timestamp DESC LIMIT ?;",
-        [n],
+        "SELECT * FROM meals WHERE timestamp > ? ORDER BY timestamp DESC;",
+        [Math.floor(startOfToday.getTime() / 1000)],
         (_, result) => {
           resolve(result.rows._array as MealEntry[]);
         },
@@ -120,13 +125,19 @@ const updateMealByIdAsync = async (id: number, meal: Meal): Promise<void> => {
 };
 
 type MealsDatabaseContextProps = {
+  meals: MealEntry[];
   insertMeal: (meal: Meal) => Promise<void>;
-  fetchLastMeals: (n: number) => Promise<Meal[]>;
+  deleteMealById: (id: number) => Promise<void>;
+  updateMealById: (id: number, meal: Meal) => Promise<void>;
+  refreshMeals: () => Promise<void>;
 };
 
 const MealsDatabaseContext = createContext<MealsDatabaseContextProps>({
+  meals: [],
   insertMeal: async () => {},
-  fetchLastMeals: async () => [],
+  deleteMealById: async () => {},
+  updateMealById: async () => {},
+  refreshMeals: async () => {},
 });
 
 type ProviderProps = {
@@ -136,20 +147,44 @@ type ProviderProps = {
 export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   children,
 }) => {
+  const [meals, setMeals] = useState<MealEntry[]>([]);
+
   useEffect(() => {
-    setupDatabaseAsync().catch(console.error);
+    setupDatabaseAsync()
+      .then(() => refreshMeals())
+      .catch(console.error);
   }, []);
+
+  const refreshMeals = async () => {
+    const dailyMeals = await fetchDailyMealsAsync();
+    setMeals(dailyMeals);
+  };
 
   const insertMeal = async (meal: Meal) => {
     await insertMealAsync(meal);
+    await refreshMeals();
   };
 
-  const fetchLastMeals = async (n: number) => {
-    return await fetchLastMealsAsync(n);
+  const deleteMealById = async (id: number) => {
+    await deleteMealByIdAsync(id);
+    await refreshMeals();
+  };
+
+  const updateMealById = async (id: number, meal: Meal) => {
+    await updateMealByIdAsync(id, meal);
+    await refreshMeals();
   };
 
   return (
-    <MealsDatabaseContext.Provider value={{ insertMeal, fetchLastMeals }}>
+    <MealsDatabaseContext.Provider
+      value={{
+        meals,
+        insertMeal,
+        deleteMealById,
+        updateMealById,
+        refreshMeals,
+      }}
+    >
       {children}
     </MealsDatabaseContext.Provider>
   );

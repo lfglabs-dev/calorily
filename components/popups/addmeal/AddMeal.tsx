@@ -33,7 +33,7 @@ const AddMeal = ({ image, close }) => {
   const [type, setType] = useState<string>(null);
   const [ingredients, setIngredients] = useState<ExtendedIngredient[]>([]);
   const [b64Image, setB64Image] = useState<string | null>(null);
-  const { insertMeal, fetchLastMeals } = useMealsDatabase();
+  const { insertMeal } = useMealsDatabase();
 
   const fetchIngredients = async (b64Image: string) => {
     setIsLoading(true);

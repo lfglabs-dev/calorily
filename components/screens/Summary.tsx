@@ -32,6 +32,7 @@ const Summary = () => {
       marginTop: 50,
     },
     addButton: {
+      marginTop:10,
       alignItems: "center",
       backgroundColor: scheme === "dark" ? "#1A73E8" : "#007AFF",
       padding: 15,

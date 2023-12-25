@@ -20,3 +20,7 @@ export const totalProteins = (ingredients: Ingredient[]): number => {
 export const totalFats = (ingredients: Ingredient[]): number => {
   return ingredients.reduce((total, ingredient) => total + ingredient.fats, 0);
 };
+
+export const totalCalories = (macros: Macro[]): number => {
+  return macros.reduce((total, macro) => total + calculateCalories(macro), 0);
+};
