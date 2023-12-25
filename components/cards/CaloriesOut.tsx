@@ -1,11 +1,20 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, useColorScheme } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useApplicationSettings } from "../../shared/ApplicationSettingsContext"; // Adjust the import path as needed
 
 const CaloriesOutCard = () => {
+  const { settings } = useApplicationSettings();
+  const [dailyCaloriesOutGoal, setDailyCaloriesOutGoal] = useState(0);
   const scheme = useColorScheme();
   const lightColor = "#EA580B";
   const color = "#F97315";
+
+  useEffect(() => {
+    if (settings) {
+      setDailyCaloriesOutGoal(settings.dailyGoals.caloriesOut);
+    }
+  }, [settings]);
   const dynamicStyles = StyleSheet.create({
     container: {
       backgroundColor: scheme === "dark" ? "#1C1C1E" : "#FFF",
@@ -61,7 +70,8 @@ const CaloriesOutCard = () => {
       </View>
       <View style={dynamicStyles.bottomSection}>
         <Text style={dynamicStyles.values}>
-          450 / 500<Text style={dynamicStyles.kcal}> kCal</Text>
+          450 / {dailyCaloriesOutGoal}
+          <Text style={dynamicStyles.kcal}> kCal</Text>
         </Text>
       </View>
     </View>
