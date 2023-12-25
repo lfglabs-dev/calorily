@@ -15,8 +15,20 @@ import { ImagePickerAsset } from "expo-image-picker";
 import { CustomBackground } from "./CustomBackground";
 import { CustomHandle } from "./CustomHandle";
 import { IngredientItem } from "./IngredientItem";
+import { useMealsDatabase } from "../../../shared/MealsDatabaseContext";
+import {
+  calculateCalories,
+  totalCarbs,
+  totalFats,
+  totalProteins,
+} from "../../../utils/food";
 
 const SNAP_POINTS = ["90%"];
+
+type ExtendedIngredient = Ingredient & {
+  calories: number;
+  selected: boolean;
+};
 
 const AddMeal = ({ image, close }) => {
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -26,6 +38,7 @@ const AddMeal = ({ image, close }) => {
   const [type, setType] = useState<string>(null);
   const [ingredients, setIngredients] = useState<ExtendedIngredient[]>([]);
   const [b64Image, setB64Image] = useState<string | null>(null);
+  const { insertMeal, fetchLastMeals } = useMealsDatabase();
 
   const fetchIngredients = async (b64Image: string) => {
     setIsLoading(true);
@@ -51,7 +64,7 @@ const AddMeal = ({ image, close }) => {
       setIngredients(
         data.ingredients.map((item) => ({
           ...item,
-          calories: item.carbs * 4 + item.proteins * 4 + item.fats * 9,
+          calories: calculateCalories(item),
           selected: true,
         }))
       );
@@ -138,7 +151,19 @@ const AddMeal = ({ image, close }) => {
             />
             <TouchableOpacity
               style={styles(colorScheme).addButton}
-              onPress={() => console.log("Add Meal")}
+              onPress={() => {
+                const meal = {
+                  name,
+                  type,
+                  carbs: totalCarbs(ingredients),
+                  proteins: totalProteins(ingredients),
+                  fats: totalFats(ingredients),
+                  timestamp: Math.floor(Date.now() / 1000),
+                };
+                console.log("Adding meal:", meal);
+                insertMeal(meal);
+                bottomSheetRef.current.close();
+              }}
             >
               <Text style={styles(colorScheme).addButtonText}>Add Meal</Text>
             </TouchableOpacity>
