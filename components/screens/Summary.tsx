@@ -6,13 +6,17 @@ import {
   TouchableOpacity,
   useColorScheme,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import CaloriesInCard from "../cards/CaloriesIn";
 import CaloriesOutCard from "../cards/CaloriesOut";
 import PastMeals from "../cards/PastMeals";
+import AddMeal from "../popups/addmeal/AddMeal";
 
 const Summary = () => {
   const scheme = useColorScheme();
-  const [showAddMeal, setShowAddMeal] = useState(false);
+  const [status, requestPermission] = ImagePicker.useCameraPermissions();
+  const [image, setImage] = useState(null);
+
   const dynamicStyles = StyleSheet.create({
     container: {
       flex: 1,
@@ -32,10 +36,6 @@ const Summary = () => {
       backgroundColor: scheme === "dark" ? "#1A73E8" : "#007AFF",
       padding: 15,
       borderRadius: 10,
-      position: "absolute",
-      bottom: 20,
-      left: 20,
-      right: 20,
     },
     addButtonText: {
       color: "#FFF",
@@ -43,34 +43,36 @@ const Summary = () => {
     },
   });
 
+  const pickImage = async () => {
+    if (status.granted) {
+      let imageResult = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        exif: false,
+        quality: 0.2,
+      });
+      setImage(imageResult);
+    } else if (status.canAskAgain) {
+      await requestPermission();
+    } else {
+      alert(
+        "DietGPT needs your permission to use your camera. You can allow it in your iOS settings."
+      );
+    }
+  };
+
   return (
     <View style={dynamicStyles.container}>
       <Text style={dynamicStyles.title}>Summary</Text>
       <CaloriesInCard />
       <CaloriesOutCard />
       <PastMeals />
-      {showAddMeal ? null : null}
-      <TouchableOpacity
-        style={dynamicStyles.addButton}
-        onPress={() => {
-          setShowAddMeal(true);
-        }}
-      >
+      <TouchableOpacity style={dynamicStyles.addButton} onPress={pickImage}>
         <Text style={dynamicStyles.addButtonText}>Add Meal</Text>
       </TouchableOpacity>
+      {image ? <AddMeal image={image} close={() => setImage(null)} /> : null}
     </View>
   );
 };
 
 export default Summary;
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 24,
-    backgroundColor: "grey",
-  },
-  contentContainer: {
-    flex: 1,
-    alignItems: "center",
-  },
-});
