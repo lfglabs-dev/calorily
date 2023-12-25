@@ -25,11 +25,6 @@ import {
 
 const SNAP_POINTS = ["90%"];
 
-type ExtendedIngredient = Ingredient & {
-  calories: number;
-  selected: boolean;
-};
-
 const AddMeal = ({ image, close }) => {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const colorScheme = useColorScheme();
