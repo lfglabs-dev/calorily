@@ -30,11 +30,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     [
       "expo-image-picker",
       {
-        photosPermission:
-          "This app accesses your photos to analyze your meal.",
-        cameraPermission:
-          "This app accesses your camera to analyze your meal.",
+        photosPermission: "This app accesses your photos to analyze your meal.",
+        cameraPermission: "This app accesses your camera to analyze your meal.",
       },
     ],
   ],
+  extra: {
+    eas: {
+      projectId: "35a0cfd6-4e2e-4759-ac9c-fe898822090b",
+    },
+  },
 });
