@@ -10,12 +10,6 @@ import * as FileSystem from "expo-file-system";
 
 const db = SQLite.openDatabase("meals.db");
 
-type Meal = Macro & {
-  name: string;
-  type: string;
-  timestamp: number;
-};
-
 type MealEntry = Meal & { id: number; image_uri: string };
 
 const setupDatabaseAsync = async (): Promise<void> => {
@@ -72,14 +66,14 @@ const insertMealAsync = async (
   });
 };
 
-const fetchDailyMealsAsync = async (): Promise<MealEntry[]> => {
-  const startOfToday = new Date();
-  startOfToday.setHours(2, 0, 0, 0);
+const fetchMealsSinceTimestamp = async (
+  timestamp: number
+): Promise<MealEntry[]> => {
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        "SELECT * FROM meals WHERE timestamp > ? ORDER BY timestamp DESC;",
-        [Math.floor(startOfToday.getTime() / 1000)],
+        "SELECT * FROM meals WHERE timestamp >= ? ORDER BY timestamp DESC;",
+        [timestamp],
         (_, result) => {
           resolve(result.rows._array as MealEntry[]);
         },
@@ -137,7 +131,8 @@ const updateMealByIdAsync = async (id: number, meal: Meal): Promise<void> => {
 };
 
 type MealsDatabaseContextProps = {
-  meals: MealEntry[];
+  dailyMeals: MealEntry[];
+  weeklyMeals: MealEntry[];
   insertMeal: (meal: Meal, tmpImageUri: string) => Promise<void>;
   deleteMealById: (id: number) => Promise<void>;
   updateMealById: (id: number, meal: Meal) => Promise<void>;
@@ -145,7 +140,8 @@ type MealsDatabaseContextProps = {
 };
 
 const MealsDatabaseContext = createContext<MealsDatabaseContextProps>({
-  meals: [],
+  dailyMeals: [],
+  weeklyMeals: [],
   insertMeal: async () => {},
   deleteMealById: async () => {},
   updateMealById: async () => {},
@@ -159,7 +155,8 @@ type ProviderProps = {
 export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   children,
 }) => {
-  const [meals, setMeals] = useState<MealEntry[]>([]);
+  const [dailyMeals, setDailyMeals] = useState<MealEntry[]>([]);
+  const [weeklyMeals, setWeeklyMeals] = useState<MealEntry[]>([]);
 
   useEffect(() => {
     setupDatabaseAsync()
@@ -168,8 +165,20 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   }, []);
 
   const refreshMeals = async () => {
-    const dailyMeals = await fetchDailyMealsAsync();
-    setMeals(dailyMeals);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const timestampToday = Math.floor(startOfToday.getTime() / 1000);
+
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - 7);
+    startOfWeek.setHours(0, 0, 0, 0);
+    const timestampWeek = Math.floor(startOfWeek.getTime() / 1000);
+
+    const mealsSinceToday = await fetchMealsSinceTimestamp(timestampToday);
+    const mealsSinceWeek = await fetchMealsSinceTimestamp(timestampWeek);
+
+    setDailyMeals(mealsSinceToday);
+    setWeeklyMeals(mealsSinceWeek);
   };
 
   const insertMeal = async (meal: Meal, tmpImageURI: string) => {
@@ -190,7 +199,8 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   return (
     <MealsDatabaseContext.Provider
       value={{
-        meals,
+        dailyMeals,
+        weeklyMeals,
         insertMeal,
         deleteMealById,
         updateMealById,

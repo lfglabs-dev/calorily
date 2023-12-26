@@ -9,6 +9,12 @@ type Ingredient = Macro & {
   amount: string;
 };
 
+type Meal = Macro & {
+  name: string;
+  type: string;
+  timestamp: number;
+};
+
 type ApiResponse = {
   type: string;
   name: string;

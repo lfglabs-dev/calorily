@@ -57,8 +57,9 @@ const Settings = () => {
     },
     headerTitle: {
       color: scheme === "dark" ? "#FFF" : "#000",
+      fontSize: 32,
       fontWeight: "bold",
-      fontSize: 20,
+      marginTop: 4,
     },
     editButton: {
       color: "#007AFF",
@@ -109,7 +110,7 @@ const Settings = () => {
   return (
     <SafeAreaView style={dynamicStyles.safeArea}>
       <View style={dynamicStyles.header}>
-        <Text style={dynamicStyles.headerTitle}>Application Settings</Text>
+        <Text style={dynamicStyles.headerTitle}>Settings</Text>
         <TouchableOpacity onPress={toggleEdit}>
           <Text style={dynamicStyles.editButton}>
             {editing ? "Done" : "Edit"}

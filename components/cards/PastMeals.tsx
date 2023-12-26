@@ -12,7 +12,29 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import { calculateCalories } from "../../utils/food";
 
-const PastMealCard = ({ meal, backgroundColor }) => {
+function getMealColor(scheme, mealType) {
+  const colorsDark = {
+    Breakfast: "#00b894",
+    Lunch: "#0984e3",
+    Dinner: "#fdcb6e",
+    Snacks: "#6c5ce7",
+  };
+
+  const colorsLight = {
+    Breakfast: "#55efc4",
+    Lunch: "#74b9ff",
+    Dinner: "#ffeaa7",
+    Snacks: "#a29bfe",
+  };
+
+  if (scheme === "dark") {
+    return colorsDark[mealType] || "#e84393";
+  } else {
+    return colorsLight[mealType] || "#fd79a8";
+  }
+}
+
+const PastMealCard = ({ meal }) => {
   const scheme = useColorScheme();
   const { deleteMealById } = useMealsDatabase();
 
@@ -27,7 +49,7 @@ const PastMealCard = ({ meal, backgroundColor }) => {
   const cardStyles = StyleSheet.create({
     card: {
       borderRadius: 8,
-      opacity: 0.4,
+      opacity: 0.35,
     },
     title: {
       color: scheme === "dark" ? "#FFF" : "#000",
@@ -37,7 +59,7 @@ const PastMealCard = ({ meal, backgroundColor }) => {
       marginBottom: 10,
     },
     badge: {
-      backgroundColor: backgroundColor,
+      backgroundColor: getMealColor(scheme, meal.type),
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 15,
@@ -45,7 +67,7 @@ const PastMealCard = ({ meal, backgroundColor }) => {
       alignSelf: "flex-start",
     },
     badgeText: {
-      color: scheme === "dark" ? "#000" : "#FFF",
+      color: scheme === "dark" ? "#FFF" : "#000",
       fontSize: 14,
     },
     closeButton: {
@@ -68,7 +90,8 @@ const PastMealCard = ({ meal, backgroundColor }) => {
       marginLeft: 5,
     },
     dateBadge: {
-      backgroundColor: "#D3D3D3",
+      backgroundColor:
+        scheme === "dark" ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.5)",
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 15,
@@ -76,6 +99,10 @@ const PastMealCard = ({ meal, backgroundColor }) => {
       position: "absolute",
       bottom: 10,
       right: 10,
+    },
+    dateText: {
+      color: scheme === "dark" ? "#000" : "#FFF",
+      fontSize: 14,
     },
   });
 
@@ -105,40 +132,39 @@ const PastMealCard = ({ meal, backgroundColor }) => {
         </View>
         <View style={cardStyles.detailRow}>
           <Text style={cardStyles.fieldName}>Carbs:</Text>
-          <Text style={cardStyles.fieldValue}>{meal.carbs}g</Text>
+          <Text style={cardStyles.fieldValue}>{meal.carbs.toFixed(1)}g</Text>
         </View>
         <View style={cardStyles.detailRow}>
           <Text style={cardStyles.fieldName}>Proteins:</Text>
-          <Text style={cardStyles.fieldValue}>{meal.proteins}g</Text>
+          <Text style={cardStyles.fieldValue}>{meal.proteins.toFixed(1)}g</Text>
         </View>
         <View style={cardStyles.detailRow}>
           <Text style={cardStyles.fieldName}>Fats:</Text>
-          <Text style={cardStyles.fieldValue}>{meal.fats}g</Text>
+          <Text style={cardStyles.fieldValue}>{meal.fats.toFixed(1)}g</Text>
         </View>
         <View style={cardStyles.detailRow}>
           <Text style={cardStyles.fieldName}>Calories:</Text>
           <Text style={cardStyles.fieldValue}>
-            {calculateCalories(meal)} kcal
+            {+calculateCalories(meal).toFixed(1)} kcal
           </Text>
         </View>
         <View style={cardStyles.dateBadge}>
-          <Text style={cardStyles.fieldValue}>
-            {formatDate(meal.timestamp)}
-          </Text>
+          <Text style={cardStyles.dateText}>{formatDate(meal.timestamp)}</Text>
         </View>
       </View>
     </ImageBackground>
   );
 };
 
-const MyCarousel = () => {
-  const { meals } = useMealsDatabase();
+const PastMeals = () => {
+  const { dailyMeals } = useMealsDatabase();
   const sliderRef = useRef<PagerView>(null);
-  const initialPage = meals.length - 1;
+  const initialPage = dailyMeals.length - 1;
 
   useEffect(() => {
-    if (meals.length !== 0) sliderRef.current.setPage(meals.length - 1);
-  }, [meals]);
+    if (dailyMeals.length !== 0)
+      sliderRef.current.setPage(dailyMeals.length - 1);
+  }, [dailyMeals]);
 
   const carouselStyles = StyleSheet.create({
     pagerView: {
@@ -154,19 +180,13 @@ const MyCarousel = () => {
       style={carouselStyles.pagerView}
       initialPage={initialPage}
     >
-      {meals.map((meal, index) => (
-        <PastMealCard
-          key={index.toString()}
-          meal={meal}
-          backgroundColor={determineBackgroundColor(index)}
-        />
-      ))}
+      {dailyMeals
+        .sort((a, b) => a.timestamp - b.timestamp)
+        .map((meal, index) => (
+          <PastMealCard key={index.toString()} meal={meal} />
+        ))}
     </PagerView>
   );
 };
 
-const determineBackgroundColor = (index) => {
-  return index % 2 === 0 ? "#FFD700" : "#F0E68C";
-};
-
-export default MyCarousel;
+export default PastMeals;

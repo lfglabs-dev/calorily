@@ -24,3 +24,24 @@ export const totalFats = (ingredients: Ingredient[]): number => {
 export const totalCalories = (macros: Macro[]): number => {
   return macros.reduce((total, macro) => total + calculateCalories(macro), 0);
 };
+
+export const getDailyCalories = (
+  mealEntries: Meal[]
+): {
+  [day: string]: any;
+} => {
+  const mealsByDay: { [day: string]: Meal[] } = {};
+
+  mealEntries.forEach((meal) => {
+    const date = new Date(meal.timestamp*1000);
+    const dayKey = date.toISOString().split("T")[0];
+
+    if (!mealsByDay[dayKey]) {
+      mealsByDay[dayKey] = [];
+    }
+
+    mealsByDay[dayKey].push(meal);
+  });
+
+  return mealsByDay;
+};

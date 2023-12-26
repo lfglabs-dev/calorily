@@ -118,7 +118,7 @@ const AddMeal = ({ image, close }) => {
             <Image
               source={{ uri: image.assets?.[0].uri }}
               style={styles(colorScheme).image}
-              blurRadius={5}
+              blurRadius={100}
             />
             <Text style={styles(colorScheme).title}>Analyzing Image</Text>
             <ActivityIndicator
@@ -156,7 +156,6 @@ const AddMeal = ({ image, close }) => {
                   fats: totalFats(ingredients),
                   timestamp: Math.floor(Date.now() / 1000),
                 };
-                console.log("Adding meal:", meal);
                 insertMeal(meal, resizedImage.uri);
                 bottomSheetRef.current.close();
               }}

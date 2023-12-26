@@ -10,10 +10,10 @@ const CaloriesInCard = () => {
   const [dailyCaloriesGoal, setDailyCaloriesGoal] = useState(0);
   const [dailyCalories, setDailyCalories] = useState(0);
 
-  const { meals } = useMealsDatabase();
+  const { dailyMeals } = useMealsDatabase();
   useEffect(() => {
-    setDailyCalories(totalCalories(meals));
-  }, [meals]);
+    setDailyCalories(totalCalories(dailyMeals));
+  }, [dailyMeals]);
 
   const scheme = useColorScheme();
   const lightColor = "#22C55F";
@@ -80,7 +80,7 @@ const CaloriesInCard = () => {
       </View>
       <View style={dynamicStyles.bottomSection}>
         <Text style={dynamicStyles.values}>
-          {dailyCalories} / {dailyCaloriesGoal}
+          {dailyCalories.toFixed(0)} / {dailyCaloriesGoal}
           <Text style={dynamicStyles.kcal}> kCal</Text>
         </Text>
       </View>
