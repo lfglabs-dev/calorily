@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, useColorScheme } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useApplicationSettings } from "../../shared/ApplicationSettingsContext";
-import { useMealsDatabase } from "../../shared/MealsDatabaseContext";
+import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import { totalCalories } from "../../utils/food";
 
 const CaloriesInCard = () => {

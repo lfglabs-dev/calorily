@@ -13,7 +13,7 @@ import Progress from "./components/screens/Progress";
 import Summary from "./components/screens/Summary";
 import Settings from "./components/screens/Settings";
 import { ApplicationSettingsProvider } from "./shared/ApplicationSettingsContext";
-import { MealsDatabaseProvider } from "./shared/MealsDatabaseContext";
+import { MealsDatabaseProvider } from "./shared/MealsStorageContext";
 
 const Tab = createBottomTabNavigator();
 export const ApplicationSettingsContext = createContext({

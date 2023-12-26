@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import * as SQLite from "expo-sqlite";
+import * as FileSystem from "expo-file-system";
 
 const db = SQLite.openDatabase("meals.db");
 
@@ -15,13 +16,13 @@ type Meal = Macro & {
   timestamp: number;
 };
 
-type MealEntry = Meal & { id: number };
+type MealEntry = Meal & { id: number; image_uri: string };
 
 const setupDatabaseAsync = async (): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        "CREATE TABLE IF NOT EXISTS meals (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, type TEXT, carbs REAL, proteins REAL, fats REAL, timestamp INTEGER);",
+        "CREATE TABLE IF NOT EXISTS meals (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, type TEXT, carbs REAL, proteins REAL, fats REAL, timestamp INTEGER, image_path TEXT);",
         [],
         () => {
           resolve();
@@ -35,11 +36,21 @@ const setupDatabaseAsync = async (): Promise<void> => {
   });
 };
 
-const insertMealAsync = async (meal: Meal): Promise<void> => {
+const insertMealAsync = async (
+  meal: Meal,
+  tmpImageURI: string
+): Promise<void> => {
+  const fileName = tmpImageURI.split("/").pop();
+  const imagePath = FileSystem.documentDirectory + fileName;
+  await FileSystem.copyAsync({
+    from: tmpImageURI,
+    to: imagePath,
+  });
+
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        "INSERT INTO meals (name, type, carbs, proteins, fats, timestamp) VALUES (?, ?, ?, ?, ?, ?);",
+        "INSERT INTO meals (name, type, carbs, proteins, fats, timestamp, image_path) VALUES (?, ?, ?, ?, ?, ?, ?);",
         [
           meal.name,
           meal.type,
@@ -47,6 +58,7 @@ const insertMealAsync = async (meal: Meal): Promise<void> => {
           meal.proteins,
           meal.fats,
           meal.timestamp,
+          imagePath,
         ],
         () => {
           resolve();
@@ -126,7 +138,7 @@ const updateMealByIdAsync = async (id: number, meal: Meal): Promise<void> => {
 
 type MealsDatabaseContextProps = {
   meals: MealEntry[];
-  insertMeal: (meal: Meal) => Promise<void>;
+  insertMeal: (meal: Meal, tmpImageUri: string) => Promise<void>;
   deleteMealById: (id: number) => Promise<void>;
   updateMealById: (id: number, meal: Meal) => Promise<void>;
   refreshMeals: () => Promise<void>;
@@ -160,8 +172,8 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     setMeals(dailyMeals);
   };
 
-  const insertMeal = async (meal: Meal) => {
-    await insertMealAsync(meal);
+  const insertMeal = async (meal: Meal, tmpImageURI: string) => {
+    await insertMealAsync(meal, tmpImageURI);
     await refreshMeals();
   };
 

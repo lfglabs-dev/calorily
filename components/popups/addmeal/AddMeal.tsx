@@ -15,7 +15,7 @@ import { ImagePickerAsset } from "expo-image-picker";
 import { CustomBackground } from "./CustomBackground";
 import { CustomHandle } from "./CustomHandle";
 import { IngredientItem } from "./IngredientItem";
-import { useMealsDatabase } from "../../../shared/MealsDatabaseContext";
+import { useMealsDatabase } from "../../../shared/MealsStorageContext";
 import {
   calculateCalories,
   totalCarbs,
@@ -32,7 +32,8 @@ const AddMeal = ({ image, close }) => {
   const [name, setName] = useState<string>(null);
   const [type, setType] = useState<string>(null);
   const [ingredients, setIngredients] = useState<ExtendedIngredient[]>([]);
-  const [b64Image, setB64Image] = useState<string | null>(null);
+  const [resizedImage, setResizedImage] =
+    useState<ImageManipulator.ImageResult | null>(null);
   const { insertMeal } = useMealsDatabase();
 
   const fetchIngredients = async (b64Image: string) => {
@@ -83,7 +84,7 @@ const AddMeal = ({ image, close }) => {
         [{ resize: { width: 1024 } }],
         { compress: 1, format: ImageManipulator.SaveFormat.JPEG, base64: true }
       );
-      return resizedImage.base64;
+      return resizedImage;
     } catch (error) {
       console.error(error);
     }
@@ -92,15 +93,15 @@ const AddMeal = ({ image, close }) => {
   useEffect(() => {
     if (image?.assets) {
       const selectedImage = image.assets[0];
-      resizeAndConvertToBase64(selectedImage).then(setB64Image);
+      resizeAndConvertToBase64(selectedImage).then(setResizedImage);
     }
   }, [image]);
 
   useEffect(() => {
-    if (b64Image) {
-      fetchIngredients(b64Image);
+    if (resizedImage?.base64) {
+      fetchIngredients(resizedImage.base64);
     }
-  }, [b64Image]);
+  }, [resizedImage]);
 
   return (
     <BottomSheet
@@ -156,7 +157,7 @@ const AddMeal = ({ image, close }) => {
                   timestamp: Math.floor(Date.now() / 1000),
                 };
                 console.log("Adding meal:", meal);
-                insertMeal(meal);
+                insertMeal(meal, resizedImage.uri);
                 bottomSheetRef.current.close();
               }}
             >
