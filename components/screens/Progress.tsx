@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, useColorScheme } from "react-native";
-import MusicChart from "../stats/MusicChart";
+import MusicChart from "../stats/WeeklyChart";
 
 const Progress = () => {
   const scheme = useColorScheme();
