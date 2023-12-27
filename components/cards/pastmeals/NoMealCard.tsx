@@ -10,7 +10,7 @@ const EmptyMealCard = () => {
       marginHorizontal: 20,
       height: "100%",
       borderRadius: 8,
-      backgroundColor: scheme === 'dark' ? '#1C1C1E' : '#F0F0F3',
+      backgroundColor: scheme === 'dark' ? '#1C1C1E' : '#fff',
       alignItems: 'center',
       justifyContent: 'center',
     },
