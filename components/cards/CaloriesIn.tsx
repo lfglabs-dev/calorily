@@ -30,7 +30,7 @@ const CaloriesInCard = () => {
       backgroundColor: scheme === "dark" ? "#1C1C1E" : "#FFF",
       borderRadius: 8,
       padding: 15,
-      marginBottom: 10,
+      marginBottom: 12,
     },
     headerSection: {
       flexDirection: "row",

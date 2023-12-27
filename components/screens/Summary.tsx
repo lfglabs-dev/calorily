@@ -21,7 +21,7 @@ const Summary = () => {
     container: {
       flex: 1,
       backgroundColor: scheme === "dark" ? "#000" : "#F2F1F6",
-      padding: 20,
+      padding: 15,
     },
     title: {
       color: scheme === "dark" ? "#FFF" : "#000",
@@ -29,10 +29,11 @@ const Summary = () => {
       fontWeight: "bold",
       alignSelf: "flex-start",
       marginBottom: 30,
-      marginTop: 50,
+      marginTop: 55,
+      marginLeft: 5,
     },
     addButton: {
-      marginTop:10,
+      marginTop: 12,
       alignItems: "center",
       backgroundColor: scheme === "dark" ? "#1A73E8" : "#007AFF",
       padding: 15,

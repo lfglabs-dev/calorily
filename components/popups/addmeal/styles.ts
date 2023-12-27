@@ -73,11 +73,6 @@ export const styles = (colorScheme: StylesProps["colorScheme"]) =>
       marginRight: 5,
       width: 180,
     },
-    caloriesText: {
-      color: "#FF4500",
-      fontWeight: "bold",
-      fontSize: 14,
-    },
     switchStyle: {
       marginLeft: 45,
     },
