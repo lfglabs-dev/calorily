@@ -2,7 +2,7 @@ import { ExpoConfig, ConfigContext } from "@expo/config";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "dietgpt",
+  name: "DietGPT",
   slug: "dietgpt",
   version: "1.0.0",
   orientation: "portrait",
@@ -15,6 +15,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   assetBundlePatterns: ["**/*"],
   ios: {
+    bundleIdentifier: 'io.th0rgal.dietgpt',
     supportsTablet: true,
   },
   android: {
@@ -27,6 +28,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: "./assets/favicon.png",
   },
   plugins: [
+    "react-native-health",
     [
       "expo-image-picker",
       {
