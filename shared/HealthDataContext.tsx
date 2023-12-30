@@ -17,6 +17,7 @@ type HealthDataContextType = {
   fetchDailyActiveEnergyBurned: () => void;
   fetchLatestWeight: () => void;
   fetchLatestBodyFatPercentage: () => void;
+  estimateBMR: () => Promise<number>;
   saveFoodData: (options: Object) => void;
 };
 
@@ -27,6 +28,9 @@ const defaultContext: HealthDataContextType = {
   fetchDailyActiveEnergyBurned: () => {},
   fetchLatestWeight: () => {},
   fetchLatestBodyFatPercentage: () => {},
+  estimateBMR: async () => {
+    return 0;
+  },
   saveFoodData: () => {},
 };
 
@@ -56,6 +60,9 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
           AppleHealthKit.Constants.Permissions.ActiveEnergyBurned,
           AppleHealthKit.Constants.Permissions.BodyFatPercentage,
           AppleHealthKit.Constants.Permissions.Weight,
+          AppleHealthKit.Constants.Permissions.Height,
+          AppleHealthKit.Constants.Permissions.BiologicalSex,
+          AppleHealthKit.Constants.Permissions.DateOfBirth,
         ],
         write: [AppleHealthKit.Constants.Permissions.EnergyConsumed],
       },
@@ -130,6 +137,85 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
     );
   };
 
+  const estimateBMR = async () => {
+    // Check if lastWeight and lastBodyFat are available
+    if (lastWeight === null) {
+      console.error("Weight data is not available");
+      return null;
+    }
+
+    let BMR = 0;
+    if (lastBodyFat !== null) {
+      // Katch-McArdle formula
+      const leanBodyMass = lastWeight * (1 - lastBodyFat / 100);
+      BMR = 370 + 21.6 * leanBodyMass;
+    } else {
+      let height: number;
+      // Fetch height
+      try {
+        const heightResult: any = await new Promise((resolve, reject) => {
+          AppleHealthKit.getLatestHeight(null, (err, results) => {
+            if (err) {
+              reject("error getting latest height: " + err);
+            } else {
+              resolve(results);
+            }
+          });
+        });
+        height = heightResult.value*2.54;
+      } catch (error) {
+        console.error(error);
+        return null;
+      }
+
+      let biologicalSex: "female" | "male";
+
+      // Fetch biological sex
+      try {
+        const biologicalSexResult: any = await new Promise(
+          (resolve, reject) => {
+            AppleHealthKit.getBiologicalSex(null, (err, results) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve(results);
+              }
+            });
+          }
+        );
+        biologicalSex = biologicalSexResult.value;
+      } catch (error) {
+        console.error(error);
+        return null;
+      }
+
+      // Fetch age
+      let age: number;
+      try {
+        const ageResult: any = await new Promise((resolve, reject) => {
+          AppleHealthKit.getDateOfBirth(null, (err, results) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(results);
+            }
+          });
+        });
+        age = ageResult.age;
+      } catch (error) {
+        console.error(error);
+        return null;
+      }
+
+      // Mifflin-St Jeor formula
+      const weightInKg = lastWeight / 1000;
+      const s = biologicalSex === "male" ? 5 : -161;
+      BMR = 10 * weightInKg + 6.25 * height - 5 * age + s;
+    }
+
+    return BMR;
+  };
+
   const saveFoodData = (options: Object) => {
     AppleHealthKit.saveFood(options, (error: string, result: HealthValue) => {
       if (error) {
@@ -149,6 +235,7 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
         fetchDailyActiveEnergyBurned,
         fetchLatestWeight,
         fetchLatestBodyFatPercentage,
+        estimateBMR,
         saveFoodData,
       }}
     >

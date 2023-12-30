@@ -9,10 +9,13 @@ import {
   SafeAreaView,
 } from "react-native";
 import { useApplicationSettings } from "../../shared/ApplicationSettingsContext";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { useHealthData } from "../../shared/HealthDataContext";
 
 const Settings = () => {
   const { settings, updateSettings } = useApplicationSettings();
   const [editing, setEditing] = useState(false);
+  const [shouldSave, setShouldSave] = useState(false);
 
   const [basalMetabolicRate, setBasalMetabolicRate] = useState("");
   const [targetCaloricDeficit, setTargetCaloricDeficit] = useState("");
@@ -20,7 +23,7 @@ const Settings = () => {
   const [targetMinimumWeight, setTargetMinimumWeight] = useState("");
   const [targetMaximumWeight, setTargetMaximumWeight] = useState("");
   const [openAiKey, setOpenAiKey] = useState("");
-
+  const { estimateBMR } = useHealthData();
   const scheme = useColorScheme();
 
   useEffect(() => {
@@ -57,12 +60,19 @@ const Settings = () => {
     });
   };
 
-  const toggleEdit = () => {
+  useEffect(() => {
     if (editing) {
       saveSettings();
     }
-    setEditing(!editing);
-  };
+  }, [editing]);
+
+  useEffect(() => {
+    if (shouldSave) {
+      saveSettings().then(() => {
+        setShouldSave(false);
+      });
+    }
+  }, [shouldSave]);
 
   const dynamicStyles = StyleSheet.create({
     safeArea: {
@@ -133,7 +143,7 @@ const Settings = () => {
     <SafeAreaView style={dynamicStyles.safeArea}>
       <View style={dynamicStyles.header}>
         <Text style={dynamicStyles.headerTitle}>Settings</Text>
-        <TouchableOpacity onPress={toggleEdit}>
+        <TouchableOpacity onPress={() => setEditing(!editing)}>
           <Text style={dynamicStyles.editButton}>
             {editing ? "Done" : "Edit"}
           </Text>
@@ -142,7 +152,29 @@ const Settings = () => {
       <Text style={dynamicStyles.sectionTitle}>Metabolic Data</Text>
       <View style={dynamicStyles.section}>
         <View style={dynamicStyles.settingRow}>
-          <Text style={dynamicStyles.settingLabel}>Basal Metabolic Rate</Text>
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <Text style={dynamicStyles.settingLabel}>Basal Metabolic Rate</Text>
+            <TouchableOpacity
+              onPress={() => {
+                estimateBMR().then((value) => {
+                  setBasalMetabolicRate(value.toFixed(0));
+                  setShouldSave(true);
+                });
+              }}
+              style={{
+                marginLeft: 8,
+                padding: 2,
+                borderRadius: 8,
+                backgroundColor: scheme === "dark" ? "#FFF" : "#000",
+              }}
+            >
+              <Ionicons
+                name="color-wand"
+                size={18}
+                color={scheme === "dark" ? "#333" : "#AAA"}
+              />
+            </TouchableOpacity>
+          </View>
           {editing ? (
             <TextInput
               style={[dynamicStyles.settingValue, dynamicStyles.input]}

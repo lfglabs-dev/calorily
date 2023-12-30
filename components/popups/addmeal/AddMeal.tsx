@@ -39,22 +39,22 @@ const AddMeal = ({ image, close }) => {
   const fetchIngredients = async (b64Image: string) => {
     setIsLoading(true);
     try {
-        //     const response = await fetch("https://api.dietgpt.gouv.media/food_data", {
-        //   method: "POST",
-        //   headers: {
-        //     "Content-Type": "application/json",
-        //   },
-        //   body: JSON.stringify({ b64_img: b64Image }),
-        // });
-        // const responseText = await response.text();
+            const response = await fetch("https://api.dietgpt.gouv.media/food_data", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ b64_img: b64Image }),
+        });
+        const responseText = await response.json();
       
       //Simulate network request delay
 
-      function delay(ms) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-      }
-      await delay(3000);
-      const data: ApiResponse = exampleResponse;
+      // function delay(ms) {
+      //   return new Promise((resolve) => setTimeout(resolve, ms));
+      // }
+      // await delay(3000);
+      const data: ApiResponse = responseText;
       setName(data.name);
       setType(data.type);
       setIngredients(
