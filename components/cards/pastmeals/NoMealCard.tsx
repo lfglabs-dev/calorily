@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, View, StyleSheet, useColorScheme } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 const EmptyMealCard = () => {
   const scheme = useColorScheme();
@@ -26,7 +26,7 @@ const EmptyMealCard = () => {
 
   return (
     <View style={styles.container}>
-      <FontAwesome name="cutlery" size={40} style={styles.icon} />
+      <Ionicons name="restaurant" size={48} style={styles.icon} />
       <Text style={styles.text}>No logged meals today</Text>
     </View>
   );

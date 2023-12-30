@@ -14,6 +14,7 @@ import Summary from "./components/screens/Summary";
 import Settings from "./components/screens/Settings";
 import { ApplicationSettingsProvider } from "./shared/ApplicationSettingsContext";
 import { MealsDatabaseProvider } from "./shared/MealsStorageContext";
+import { HealthDataProvider } from "./shared/HealthDataContext";
 
 const Tab = createBottomTabNavigator();
 export const ApplicationSettingsContext = createContext({
@@ -30,41 +31,47 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ApplicationSettingsProvider>
         <MealsDatabaseProvider>
-          <NavigationContainer theme={theme}>
-            <StatusBar style="auto" />
-            <Tab.Navigator>
-              <Tab.Screen
-                name="Summary"
-                component={Summary}
-                options={{
-                  headerShown: false,
-                  tabBarIcon: ({ color, size }) => (
-                    <FontAwesome name="cutlery" color={color} size={size} />
-                  ),
-                }}
-              />
-              <Tab.Screen
-                name="Progress"
-                component={Progress}
-                options={{
-                  headerShown: false,
-                  tabBarIcon: ({ color, size }) => (
-                    <FontAwesome name="area-chart" color={color} size={size} />
-                  ),
-                }}
-              />
-              <Tab.Screen
-                name="Settings"
-                component={Settings}
-                options={{
-                  headerShown: false,
-                  tabBarIcon: ({ color, size }) => (
-                    <FontAwesome name="cog" color={color} size={size} />
-                  ),
-                }}
-              />
-            </Tab.Navigator>
-          </NavigationContainer>
+          <HealthDataProvider>
+            <NavigationContainer theme={theme}>
+              <StatusBar style="auto" />
+              <Tab.Navigator>
+                <Tab.Screen
+                  name="Summary"
+                  component={Summary}
+                  options={{
+                    headerShown: false,
+                    tabBarIcon: ({ color, size }) => (
+                      <FontAwesome name="cutlery" color={color} size={size} />
+                    ),
+                  }}
+                />
+                <Tab.Screen
+                  name="Progress"
+                  component={Progress}
+                  options={{
+                    headerShown: false,
+                    tabBarIcon: ({ color, size }) => (
+                      <FontAwesome
+                        name="area-chart"
+                        color={color}
+                        size={size}
+                      />
+                    ),
+                  }}
+                />
+                <Tab.Screen
+                  name="Settings"
+                  component={Settings}
+                  options={{
+                    headerShown: false,
+                    tabBarIcon: ({ color, size }) => (
+                      <FontAwesome name="cog" color={color} size={size} />
+                    ),
+                  }}
+                />
+              </Tab.Navigator>
+            </NavigationContainer>
+          </HealthDataProvider>
         </MealsDatabaseProvider>
       </ApplicationSettingsProvider>
     </GestureHandlerRootView>

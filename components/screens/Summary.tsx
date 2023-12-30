@@ -7,8 +7,7 @@ import {
   useColorScheme,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
-import CaloriesInCard from "../cards/CaloriesIn";
-import CaloriesOutCard from "../cards/CaloriesOut";
+import CaloriesGoalCard from "../cards/CaloriesGoal";
 import PastMeals from "../cards/PastMeals";
 import AddMeal from "../popups/addmeal/AddMeal";
 
@@ -32,15 +31,26 @@ const Summary = () => {
       marginTop: 55,
       marginLeft: 5,
     },
-    addButton: {
+    mainButton: {
       marginTop: 12,
       alignItems: "center",
       backgroundColor: scheme === "dark" ? "#1A73E8" : "#007AFF",
       padding: 15,
       borderRadius: 10,
     },
-    addButtonText: {
+    mainButtonText: {
       color: "#FFF",
+      fontSize: 18,
+    },
+    secondaryButton: {
+      marginTop: 12,
+      alignItems: "center",
+      backgroundColor: scheme === "dark" ? "#343438" : "#dfdfe8",
+      padding: 15,
+      borderRadius: 10,
+    },
+    secondaryButtonText: {
+      color: scheme === "dark" ? "#FFF" : "#5b5b5c",
       fontSize: 18,
     },
   });
@@ -53,7 +63,7 @@ const Summary = () => {
         exif: false,
         quality: 0.2,
       });
-      setImage(imageResult);
+      if (!imageResult.canceled) setImage(imageResult);
     } else if (status.canAskAgain) {
       await requestPermission();
     } else {
@@ -66,11 +76,18 @@ const Summary = () => {
   return (
     <View style={dynamicStyles.container}>
       <Text style={dynamicStyles.title}>Summary</Text>
-      <CaloriesInCard />
-      <CaloriesOutCard />
+      <CaloriesGoalCard />
       <PastMeals />
-      <TouchableOpacity style={dynamicStyles.addButton} onPress={pickImage}>
-        <Text style={dynamicStyles.addButtonText}>Add Meal</Text>
+      <TouchableOpacity
+        style={dynamicStyles.secondaryButton}
+        onPress={pickImage}
+      >
+        <Text style={dynamicStyles.secondaryButtonText}>
+          Open Meals Library
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={dynamicStyles.mainButton} onPress={pickImage}>
+        <Text style={dynamicStyles.mainButtonText}>Quickly Add Meal</Text>
       </TouchableOpacity>
       {image ? <AddMeal image={image} close={() => setImage(null)} /> : null}
     </View>

@@ -1,10 +1,21 @@
-import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  ReactNode,
+} from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// Updated ApplicationSettings type
 type ApplicationSettings = {
-  dailyGoals: {
-    caloriesIn: number;
-    caloriesOut: number;
+  metabolicData: {
+    basalMetabolicRate: number;
+    targetCaloricDeficit: number;
+    targetCaloricSurplus: number;
+    targetMinimumWeight: number;
+    targetMaximumWeight: number;
+    openAiKey: string;
   };
 };
 
@@ -14,35 +25,44 @@ type ApplicationSettingsContextType = {
 };
 
 const defaultSettings: ApplicationSettings = {
-  dailyGoals: {
-    caloriesIn: 2500,
-    caloriesOut: 500,
-  }
+  metabolicData: {
+    basalMetabolicRate: 2500,
+    targetCaloricDeficit: 250,
+    targetCaloricSurplus: 250,
+    targetMinimumWeight: 65,
+    targetMaximumWeight: 68,
+    openAiKey: null,
+  },
 };
 
 const defaultContext: ApplicationSettingsContextType = {
-  settings: defaultSettings, // This will be used as the initial state
+  settings: defaultSettings,
   updateSettings: () => {},
 };
 
-export const ApplicationSettingsContext = createContext<ApplicationSettingsContextType>(defaultContext);
+export const ApplicationSettingsContext =
+  createContext<ApplicationSettingsContextType>(defaultContext);
 
 type ApplicationSettingsProviderProps = {
   children: ReactNode;
 };
 
-export const ApplicationSettingsProvider: React.FC<ApplicationSettingsProviderProps> = ({ children }) => {
-  const [settings, setSettings] = useState<ApplicationSettings>(defaultContext.settings);
+export const ApplicationSettingsProvider: React.FC<
+  ApplicationSettingsProviderProps
+> = ({ children }) => {
+  const [settings, setSettings] = useState<ApplicationSettings>(
+    defaultContext.settings
+  );
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const jsonValue = await AsyncStorage.getItem('settings');
+        const jsonValue = await AsyncStorage.getItem("settings");
         if (jsonValue != null) {
           setSettings(JSON.parse(jsonValue) as ApplicationSettings);
         }
       } catch (e) {
-        console.error('Error reading application settings:', e);
+        console.error("Error reading application settings:", e);
       }
     };
 
@@ -52,10 +72,10 @@ export const ApplicationSettingsProvider: React.FC<ApplicationSettingsProviderPr
   const updateSettings = async (newSettings: ApplicationSettings) => {
     try {
       const jsonValue = JSON.stringify(newSettings);
-      await AsyncStorage.setItem('settings', jsonValue);
+      await AsyncStorage.setItem("settings", jsonValue);
       setSettings(newSettings);
     } catch (e) {
-      console.error('Error saving application settings:', e);
+      console.error("Error saving application settings:", e);
     }
   };
 
@@ -66,4 +86,5 @@ export const ApplicationSettingsProvider: React.FC<ApplicationSettingsProviderPr
   );
 };
 
-export const useApplicationSettings = () => useContext(ApplicationSettingsContext);
+export const useApplicationSettings = () =>
+  useContext(ApplicationSettingsContext);

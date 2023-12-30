@@ -13,24 +13,46 @@ import { useApplicationSettings } from "../../shared/ApplicationSettingsContext"
 const Settings = () => {
   const { settings, updateSettings } = useApplicationSettings();
   const [editing, setEditing] = useState(false);
-  const [caloriesInGoal, setCaloriesInGoal] = useState("");
-  const [caloriesOutGoal, setCaloriesOutGoal] = useState("");
+
+  const [basalMetabolicRate, setBasalMetabolicRate] = useState("");
+  const [targetCaloricDeficit, setTargetCaloricDeficit] = useState("");
+  const [targetCaloricSurplus, setTargetCaloricSurplus] = useState("");
+  const [targetMinimumWeight, setTargetMinimumWeight] = useState("");
+  const [targetMaximumWeight, setTargetMaximumWeight] = useState("");
+  const [openAiKey, setOpenAiKey] = useState("");
 
   const scheme = useColorScheme();
 
-  // Load settings when the component mounts
   useEffect(() => {
     if (settings) {
-      setCaloriesInGoal(settings.dailyGoals.caloriesIn.toString());
-      setCaloriesOutGoal(settings.dailyGoals.caloriesOut.toString());
+      setBasalMetabolicRate(
+        settings.metabolicData.basalMetabolicRate.toString()
+      );
+      setTargetCaloricDeficit(
+        settings.metabolicData.targetCaloricDeficit.toString()
+      );
+      setTargetCaloricSurplus(
+        settings.metabolicData.targetCaloricSurplus.toString()
+      );
+      setTargetMinimumWeight(
+        settings.metabolicData.targetMinimumWeight.toString()
+      );
+      setTargetMaximumWeight(
+        settings.metabolicData.targetMaximumWeight.toString()
+      );
+      setOpenAiKey(settings.metabolicData.openAiKey);
     }
   }, [settings]);
 
   const saveSettings = async () => {
     await updateSettings({
-      dailyGoals: {
-        caloriesIn: parseInt(caloriesInGoal, 10),
-        caloriesOut: parseInt(caloriesOutGoal, 10),
+      metabolicData: {
+        basalMetabolicRate: parseInt(basalMetabolicRate, 10),
+        targetCaloricDeficit: parseInt(targetCaloricDeficit, 10),
+        targetCaloricSurplus: parseInt(targetCaloricSurplus, 10),
+        targetMinimumWeight: parseInt(targetMinimumWeight, 10),
+        targetMaximumWeight: parseInt(targetMaximumWeight, 10),
+        openAiKey,
       },
     });
   };
@@ -117,32 +139,102 @@ const Settings = () => {
           </Text>
         </TouchableOpacity>
       </View>
-      <Text style={dynamicStyles.sectionTitle}>Daily Goals</Text>
+      <Text style={dynamicStyles.sectionTitle}>Metabolic Data</Text>
       <View style={dynamicStyles.section}>
         <View style={dynamicStyles.settingRow}>
-          <Text style={dynamicStyles.settingLabel}>Calories In</Text>
+          <Text style={dynamicStyles.settingLabel}>Basal Metabolic Rate</Text>
           {editing ? (
             <TextInput
               style={[dynamicStyles.settingValue, dynamicStyles.input]}
-              onChangeText={setCaloriesInGoal}
-              value={caloriesInGoal}
+              onChangeText={setBasalMetabolicRate}
+              value={basalMetabolicRate}
               keyboardType="numeric"
             />
           ) : (
-            <Text style={dynamicStyles.settingValue}>{caloriesInGoal}</Text>
+            <Text style={dynamicStyles.settingValue}>{basalMetabolicRate}</Text>
           )}
         </View>
-        <View style={[dynamicStyles.settingRow, dynamicStyles.lastSettingRow]}>
-          <Text style={dynamicStyles.settingLabel}>Calories Out</Text>
+
+        <View style={dynamicStyles.settingRow}>
+          <Text style={dynamicStyles.settingLabel}>Target caloric deficit</Text>
           {editing ? (
             <TextInput
               style={[dynamicStyles.settingValue, dynamicStyles.input]}
-              onChangeText={setCaloriesOutGoal}
-              value={caloriesOutGoal}
+              onChangeText={setTargetCaloricDeficit}
+              value={targetCaloricDeficit}
               keyboardType="numeric"
             />
           ) : (
-            <Text style={dynamicStyles.settingValue}>{caloriesOutGoal}</Text>
+            <Text style={dynamicStyles.settingValue}>
+              {targetCaloricDeficit}
+            </Text>
+          )}
+        </View>
+
+        <View style={dynamicStyles.settingRow}>
+          <Text style={dynamicStyles.settingLabel}>Target caloric surplus</Text>
+          {editing ? (
+            <TextInput
+              style={[dynamicStyles.settingValue, dynamicStyles.input]}
+              onChangeText={setTargetCaloricSurplus}
+              value={targetCaloricSurplus}
+              keyboardType="numeric"
+            />
+          ) : (
+            <Text style={dynamicStyles.settingValue}>
+              {targetCaloricSurplus}
+            </Text>
+          )}
+        </View>
+
+        <View style={dynamicStyles.settingRow}>
+          <Text style={dynamicStyles.settingLabel}>Target minimum weight</Text>
+          {editing ? (
+            <TextInput
+              style={[dynamicStyles.settingValue, dynamicStyles.input]}
+              onChangeText={setTargetMinimumWeight}
+              value={targetMinimumWeight}
+              keyboardType="numeric"
+            />
+          ) : (
+            <Text style={dynamicStyles.settingValue}>
+              {targetMinimumWeight}
+            </Text>
+          )}
+        </View>
+
+        <View style={[dynamicStyles.settingRow, dynamicStyles.lastSettingRow]}>
+          <Text style={dynamicStyles.settingLabel}>Target maximum weight</Text>
+          {editing ? (
+            <TextInput
+              style={[dynamicStyles.settingValue, dynamicStyles.input]}
+              onChangeText={setTargetMaximumWeight}
+              value={targetMaximumWeight}
+              keyboardType="numeric"
+            />
+          ) : (
+            <Text style={dynamicStyles.settingValue}>
+              {targetMaximumWeight}
+            </Text>
+          )}
+        </View>
+      </View>
+
+      <Text style={dynamicStyles.sectionTitle}>Application</Text>
+      <View style={dynamicStyles.section}>
+        <View style={[dynamicStyles.settingRow, dynamicStyles.lastSettingRow]}>
+          <Text style={dynamicStyles.settingLabel}>OpenAI key</Text>
+          {editing ? (
+            <TextInput
+              style={[dynamicStyles.settingValue, dynamicStyles.input]}
+              onChangeText={setOpenAiKey}
+              value={openAiKey}
+              keyboardType="numeric"
+            />
+          ) : (
+            <Text style={dynamicStyles.settingValue}>
+              {openAiKey ? openAiKey : "not set"}
+            </Text>
           )}
         </View>
       </View>

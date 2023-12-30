@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, useColorScheme } from "react-native";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useApplicationSettings } from "../../shared/ApplicationSettingsContext";
+import Ionicons from "@expo/vector-icons/Ionicons";
+
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import { totalCalories } from "../../utils/food";
+import useDailyCaloriesGoal from "../../hooks/useDailyCaloriesGoal";
+import { useHealthData } from "../../shared/HealthDataContext";
 
-const CaloriesInCard = () => {
-  const { settings } = useApplicationSettings();
-  const [dailyCaloriesGoal, setDailyCaloriesGoal] = useState(0);
+const CaloriesGoalCard = () => {
+  const dailyCaloriesGoal = useDailyCaloriesGoal();
   const [dailyCalories, setDailyCalories] = useState(0);
-
   const { dailyMeals } = useMealsDatabase();
+  const { dailyActiveEnergyBurned } = useHealthData();
+
   useEffect(() => {
     setDailyCalories(totalCalories(dailyMeals));
   }, [dailyMeals]);
@@ -18,12 +20,6 @@ const CaloriesInCard = () => {
   const scheme = useColorScheme();
   const lightColor = "#22C55F";
   const color = "#17A34A";
-
-  useEffect(() => {
-    if (settings) {
-      setDailyCaloriesGoal(settings.dailyGoals.caloriesIn);
-    }
-  }, [settings]);
 
   const dynamicStyles = StyleSheet.create({
     container: {
@@ -37,8 +33,19 @@ const CaloriesInCard = () => {
       alignItems: "center",
       justifyContent: "space-between",
     },
+    activeCaloriesContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    activeCalories: {
+      color: scheme === "dark" ? "#AAA" : "gray",
+      fontSize: 14,
+    },
     icon: {
       marginRight: 10,
+    },
+    activeCaloriesIcon: {
+      marginRight: 3,
     },
     title: {
       fontSize: 16,
@@ -69,18 +76,29 @@ const CaloriesInCard = () => {
   return (
     <View style={dynamicStyles.container}>
       <View style={dynamicStyles.headerSection}>
-        <FontAwesome
-          name="cutlery"
+        <Ionicons
+          name="trending-up"
           size={24}
           color={scheme === "dark" ? lightColor : color}
           style={dynamicStyles.icon}
         />
-        <Text style={dynamicStyles.title}>Calories In</Text>
-        <Text style={dynamicStyles.date}>21 Dec</Text>
+        <Text style={dynamicStyles.title}>Calories Goal</Text>
+
+        <View style={dynamicStyles.activeCaloriesContainer}>
+          <Ionicons
+            name="flame"
+            size={16}
+            color={scheme === "dark" ? "#AAA" : "gray"}
+            style={dynamicStyles.activeCaloriesIcon}
+          />
+          <Text style={dynamicStyles.activeCalories}>
+            {dailyActiveEnergyBurned.toFixed(0)} kCal
+          </Text>
+        </View>
       </View>
       <View style={dynamicStyles.bottomSection}>
         <Text style={dynamicStyles.values}>
-          {dailyCalories.toFixed(0)} / {dailyCaloriesGoal}
+          {dailyCalories.toFixed(0)} / {dailyCaloriesGoal.toFixed(0)}
           <Text style={dynamicStyles.kcal}> kCal</Text>
         </Text>
       </View>
@@ -88,4 +106,4 @@ const CaloriesInCard = () => {
   );
 };
 
-export default CaloriesInCard;
+export default CaloriesGoalCard;
