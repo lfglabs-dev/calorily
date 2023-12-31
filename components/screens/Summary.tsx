@@ -80,7 +80,7 @@ const Summary = () => {
       <PastMeals />
       <TouchableOpacity
         style={dynamicStyles.secondaryButton}
-        onPress={pickImage}
+        onPress={() => {}}
       >
         <Text style={dynamicStyles.secondaryButtonText}>
           Open Meals Library

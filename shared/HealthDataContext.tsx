@@ -11,10 +11,16 @@ import AppleHealthKit, {
 } from "react-native-health";
 
 type HealthDataContextType = {
+  weeklyActivity: {
+    value: number;
+    startDate: string;
+    endDate: string;
+  }[];
   dailyActiveEnergyBurned: number;
+  lastWeightDate: Date | null;
   lastWeight: number;
   lastBodyFat: number;
-  fetchDailyActiveEnergyBurned: () => void;
+  refreshActiveEnergyBurned: () => void;
   fetchLatestWeight: () => void;
   fetchLatestBodyFatPercentage: () => void;
   estimateBMR: () => Promise<number>;
@@ -22,10 +28,12 @@ type HealthDataContextType = {
 };
 
 const defaultContext: HealthDataContextType = {
+  weeklyActivity: [],
   dailyActiveEnergyBurned: 0,
+  lastWeightDate: null,
   lastWeight: 0,
   lastBodyFat: 0,
-  fetchDailyActiveEnergyBurned: () => {},
+  refreshActiveEnergyBurned: () => {},
   fetchLatestWeight: () => {},
   fetchLatestBodyFatPercentage: () => {},
   estimateBMR: async () => {
@@ -46,6 +54,14 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
 }) => {
   const [dailyActiveEnergyBurned, setDailyActiveEnergyBurned] =
     useState<number>(0);
+  const [weeklyActivity, setWeeklyActivity] = useState<
+    {
+      value: number;
+      startDate: string;
+      endDate: string;
+    }[]
+  >([]);
+  const [lastWeightDate, setLastWeightDate] = useState<Date | null>(null);
   const [lastWeight, setLastWeight] = useState<number | null>(null);
   const [lastBodyFat, setLastBodyFat] = useState<number | null>(null);
 
@@ -72,7 +88,7 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
       if (error) {
         console.error("[ERROR] Cannot grant permissions:", error);
       } else {
-        fetchDailyActiveEnergyBurned();
+        refreshActiveEnergyBurned();
         fetchLatestWeight();
         fetchLatestBodyFatPercentage();
       }
@@ -82,12 +98,14 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
   const fetchLatestWeight = () => {
     AppleHealthKit.getLatestWeight(
       { unit: "gram" } as any,
-      (err: string, results: HealthValue) => {
+      (err: string, result: { value: number; endDate: string }) => {
         if (err) {
           console.error("Error getting latest weight:", err);
+          setLastWeightDate(null);
           setLastWeight(null);
         } else {
-          setLastWeight(results.value);
+          setLastWeightDate(new Date(result.endDate));
+          setLastWeight(result.value);
         }
       }
     );
@@ -107,15 +125,18 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
     );
   };
 
-  const fetchDailyActiveEnergyBurned = () => {
-    const today = new Date();
-    const startDate = new Date(
-      today.getFullYear(),
-      today.getMonth(),
-      today.getDate()
+  const refreshActiveEnergyBurned = () => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date();
+    startOfWeek.setDate(
+      startOfWeek.getDate() -
+        startOfWeek.getDay() +
+        (startOfWeek.getDay() === 0 ? -6 : 1)
     );
+    startOfWeek.setHours(0, 0, 0, 0);
     const options = {
-      startDate: startDate.toISOString(),
+      startDate: startOfWeek.toISOString(),
       endDate: new Date().toISOString(),
       ascending: true,
       includeManuallyAdded: true,
@@ -123,15 +144,25 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
 
     AppleHealthKit.getActiveEnergyBurned(
       options,
-      (error: string, results: HealthValue[]) => {
+      (
+        error: string,
+        results: {
+          value: number;
+          startDate: string;
+          endDate: string;
+        }[]
+      ) => {
         if (error) {
           console.error("Error fetching active energy burned data:", error);
         } else {
-          const totalEnergyBurned = results.reduce(
-            (sum, item) => sum + item.value,
-            0
-          );
-          setDailyActiveEnergyBurned(totalEnergyBurned);
+          setWeeklyActivity(results);
+          const dailyEnergyBurned = results
+            .filter(
+              (item) =>
+                new Date(item.endDate).getTime() >= startOfToday.getTime()
+            )
+            .reduce((sum, item) => sum + item.value, 0);
+          setDailyActiveEnergyBurned(dailyEnergyBurned);
         }
       }
     );
@@ -162,7 +193,7 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
             }
           });
         });
-        height = heightResult.value*2.54;
+        height = heightResult.value * 2.54;
       } catch (error) {
         console.error(error);
         return null;
@@ -229,10 +260,12 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
   return (
     <HealthDataContext.Provider
       value={{
+        weeklyActivity,
         dailyActiveEnergyBurned,
+        lastWeightDate,
         lastWeight,
         lastBodyFat,
-        fetchDailyActiveEnergyBurned,
+        refreshActiveEnergyBurned,
         fetchLatestWeight,
         fetchLatestBodyFatPercentage,
         estimateBMR,

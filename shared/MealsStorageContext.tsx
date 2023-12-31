@@ -168,16 +168,17 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const timestampToday = Math.floor(startOfToday.getTime() / 1000);
-
+  
     const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - 7);
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + (startOfWeek.getDay() === 0 ? -6 : 1));
     startOfWeek.setHours(0, 0, 0, 0);
     const timestampWeek = Math.floor(startOfWeek.getTime() / 1000);
-
-    const mealsSinceToday = await fetchMealsSinceTimestamp(timestampToday);
+  
     const mealsSinceWeek = await fetchMealsSinceTimestamp(timestampWeek);
-
-    setDailyMeals(mealsSinceToday);
+  
+    const mealsForToday = mealsSinceWeek.filter(meal => meal.timestamp >= timestampToday);
+  
+    setDailyMeals(mealsForToday);
     setWeeklyMeals(mealsSinceWeek);
   };
 
