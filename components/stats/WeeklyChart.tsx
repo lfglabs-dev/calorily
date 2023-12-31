@@ -51,7 +51,6 @@ const WeeklyCalories = () => {
     const caloricChange =
       dailyIntake -
       (settings.metabolicData.basalMetabolicRate + dailyActivityBurn);
-    console.log("value:", date, caloricChange);
 
     return {
       date,
@@ -59,13 +58,11 @@ const WeeklyCalories = () => {
     };
   });
 
-  console.log(data);
-
   const lightLinesColor = "gray";
   const linesColor = "gray";
   const minY = Math.min(...data.map((item) => item.caloricChange));
   const maxY = Math.max(...data.map((item) => item.caloricChange));
-  console.log(minY, maxY);
+
   return (
     <>
       <Text

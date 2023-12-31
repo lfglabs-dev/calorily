@@ -12,9 +12,11 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Progress from "./components/screens/Progress";
 import Summary from "./components/screens/Summary";
 import Settings from "./components/screens/Settings";
+import MealsLibrary from "./components/screens/MealsLibrary";
 import { ApplicationSettingsProvider } from "./shared/ApplicationSettingsContext";
 import { MealsDatabaseProvider } from "./shared/MealsStorageContext";
 import { HealthDataProvider } from "./shared/HealthDataContext";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 const Tab = createBottomTabNavigator();
 export const ApplicationSettingsContext = createContext({
@@ -23,6 +25,17 @@ export const ApplicationSettingsContext = createContext({
     caloriesOut: 500,
   },
 });
+
+const SummaryStack = createNativeStackNavigator();
+
+function SummaryStackScreen() {
+  return (
+    <SummaryStack.Navigator screenOptions={{ headerShown: false }}>
+      <SummaryStack.Screen name="SummaryScreen" component={Summary} />
+      <SummaryStack.Screen name="MealsLibrary" component={MealsLibrary} />
+    </SummaryStack.Navigator>
+  );
+}
 
 export default function App() {
   const scheme = useColorScheme();
@@ -37,7 +50,7 @@ export default function App() {
               <Tab.Navigator>
                 <Tab.Screen
                   name="Summary"
-                  component={Summary}
+                  component={SummaryStackScreen}
                   options={{
                     headerShown: false,
                     tabBarIcon: ({ color, size }) => (

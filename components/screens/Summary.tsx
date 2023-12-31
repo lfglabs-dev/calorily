@@ -9,9 +9,9 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import CaloriesGoalCard from "../cards/CaloriesGoal";
 import PastMeals from "../cards/PastMeals";
-import AddMeal from "../popups/addmeal/AddMeal";
+import AddMeal from "../addmeal/AddMeal";
 
-const Summary = () => {
+const Summary = ({ navigation }) => {
   const scheme = useColorScheme();
   const [status, requestPermission] = ImagePicker.useCameraPermissions();
   const [image, setImage] = useState(null);
@@ -80,7 +80,7 @@ const Summary = () => {
       <PastMeals />
       <TouchableOpacity
         style={dynamicStyles.secondaryButton}
-        onPress={() => {}}
+        onPress={() => navigation.navigate('MealsLibrary')}
       >
         <Text style={dynamicStyles.secondaryButtonText}>
           Open Meals Library

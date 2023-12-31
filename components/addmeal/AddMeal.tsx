@@ -15,13 +15,13 @@ import { ImagePickerAsset } from "expo-image-picker";
 import { CustomBackground } from "./CustomBackground";
 import { CustomHandle } from "./CustomHandle";
 import { IngredientItem } from "./IngredientItem";
-import { useMealsDatabase } from "../../../shared/MealsStorageContext";
+import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import {
   calculateCalories,
   totalCarbs,
   totalFats,
   totalProteins,
-} from "../../../utils/food";
+} from "../../utils/food";
 
 const SNAP_POINTS = ["90%"];
 
