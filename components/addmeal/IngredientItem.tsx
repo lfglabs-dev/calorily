@@ -43,7 +43,6 @@ export const IngredientItem: React.FC<IngredientItemProps> = ({
   toggleSelection,
 }) => (
   <View style={styles(colorScheme).ingredientItem}>
-    <View style={styles(colorScheme).ingredientNameContainer}>
       <Text
         style={styles(colorScheme).ingredientText}
         numberOfLines={1}
@@ -60,12 +59,6 @@ export const IngredientItem: React.FC<IngredientItemProps> = ({
       >
         {item.calories.toFixed(1)} kCal
       </Text>
-    </View>
-    <Switch
-      style={styles(colorScheme).switchStyle}
-      trackColor={{ true: colorScheme === "dark" ? "#1A73E8" : "#007AFF" }}
-      onValueChange={() => toggleSelection(index)}
-      value={item.selected}
-    />
+ 
   </View>
 );

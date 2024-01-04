@@ -61,7 +61,7 @@ const Summary = ({ navigation }) => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
         exif: false,
-        quality: 0.2,
+        quality: 0.075,
       });
       if (!imageResult.canceled) setImage(imageResult);
     } else if (status.canAskAgain) {

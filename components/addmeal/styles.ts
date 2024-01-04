@@ -61,11 +61,6 @@ export const styles = (colorScheme: StylesProps["colorScheme"]) =>
       borderBottomWidth: 1,
       borderBottomColor: "#ccc",
     },
-    ingredientNameContainer: {
-      flexDirection: "row",
-      alignItems: "center",
-      maxWidth: "70%",
-    },
     ingredientText: {
       color: colorScheme === "dark" ? "#fff" : "#000",
       fontWeight: "normal",
@@ -84,6 +79,18 @@ export const styles = (colorScheme: StylesProps["colorScheme"]) =>
       width: "90%",
     },
     addButtonText: {
+      color: "#FFF",
+      fontSize: 18,
+    },
+    secondaryButton: {
+      alignItems: "center",
+      backgroundColor: colorScheme === "dark" ? "#343438" : "#dfdfe8",
+      padding: 15,
+      borderRadius: 10,
+      width: "90%",
+      marginBottom: 12,
+    },
+    secondaryButtonText: {
       color: "#FFF",
       fontSize: 18,
     },

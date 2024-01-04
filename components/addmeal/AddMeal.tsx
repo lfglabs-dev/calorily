@@ -22,6 +22,7 @@ import {
   totalFats,
   totalProteins,
 } from "../../utils/food";
+import LongTextInputDialog from "./FixBugDialog";
 
 const SNAP_POINTS = ["90%"];
 
@@ -35,35 +36,67 @@ const AddMeal = ({ image, close }) => {
   const [resizedImage, setResizedImage] =
     useState<ImageManipulator.ImageResult | null>(null);
   const { insertMeal } = useMealsDatabase();
+  const [lastResponse, setLastResponse] = useState<string>(null);
+  const [dialogVisible, setDialogVisible] = useState(false);
 
-  const fetchIngredients = async (b64Image: string) => {
+  const loadResponse = (data: ApiResponse) => {
+    setName(data.name);
+    setType(data.type);
+    setIngredients(
+      data.ingredients.map((item) => ({
+        ...item,
+        calories: calculateCalories(item),
+        selected: true,
+      }))
+    );
+  };
+
+  const handleFindFix = (remark) => {
     setIsLoading(true);
-    try {
-            const response = await fetch("https://api.dietgpt.gouv.media/food_data", {
+    (async () => {
+      const response = await fetch(
+        "https://api.dietgpt.gouv.media/improve_food_data",
+        {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ b64_img: b64Image }),
-        });
-        const responseText = await response.json();
-      
+
+          body: JSON.stringify({
+            remark,
+            prev_response: lastResponse,
+            b64_img: resizedImage.base64,
+          }),
+        }
+      );
+      const responseJson = await response.json();
+
+      loadResponse(responseJson);
+      setLastResponse(responseJson);
+      setIsLoading(false);
+    })();
+    setDialogVisible(false);
+  };
+
+  const fetchIngredients = async (b64Image: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("https://api.dietgpt.gouv.media/food_data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ b64_img: b64Image }),
+      });
+      const responseJson = await response.json();
+      setLastResponse(responseJson);
       //Simulate network request delay
 
       // function delay(ms) {
       //   return new Promise((resolve) => setTimeout(resolve, ms));
       // }
       // await delay(3000);
-      const data: ApiResponse = responseText;
-      setName(data.name);
-      setType(data.type);
-      setIngredients(
-        data.ingredients.map((item) => ({
-          ...item,
-          calories: calculateCalories(item),
-          selected: true,
-        }))
-      );
+      loadResponse(responseJson);
     } catch (error) {
       console.error(error);
     } finally {
@@ -81,7 +114,7 @@ const AddMeal = ({ image, close }) => {
     try {
       const resizedImage = await ImageManipulator.manipulateAsync(
         asset.uri,
-        [{ resize: { width: 1024 } }],
+        [{ resize: { width: 896 } }],
         { compress: 1, format: ImageManipulator.SaveFormat.JPEG, base64: true }
       );
       return resizedImage;
@@ -146,6 +179,17 @@ const AddMeal = ({ image, close }) => {
               keyExtractor={(item, index) => index.toString()}
             />
             <TouchableOpacity
+              style={styles(colorScheme).secondaryButton}
+              onPress={() => {
+                setDialogVisible(true);
+                console.log("hello");
+              }}
+            >
+              <Text style={styles(colorScheme).secondaryButtonText}>
+                Fix a bug
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               style={styles(colorScheme).addButton}
               onPress={() => {
                 const meal = {
@@ -155,6 +199,7 @@ const AddMeal = ({ image, close }) => {
                   proteins: totalProteins(ingredients),
                   fats: totalFats(ingredients),
                   timestamp: Math.floor(Date.now() / 1000),
+                  favorite: false,
                 };
                 insertMeal(meal, resizedImage.uri);
                 bottomSheetRef.current.close();
@@ -165,6 +210,11 @@ const AddMeal = ({ image, close }) => {
           </>
         )}
       </View>
+      <LongTextInputDialog
+        visible={dialogVisible}
+        onClose={() => setDialogVisible(false)}
+        onSubmit={handleFindFix}
+      />
     </BottomSheet>
   );
 };
