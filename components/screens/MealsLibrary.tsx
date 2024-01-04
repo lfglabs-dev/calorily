@@ -8,14 +8,15 @@ import {
   TouchableOpacity,
   StatusBar,
 } from "react-native";
+import FullLibrary from "../library/FullLibrary";
 import SegmentedControlTab from "react-native-segmented-control-tab";
 import { useNavigation } from "@react-navigation/native";
+import NewMeal from "../library/NewMeal";
 
 const Summary = () => {
   const scheme = useColorScheme();
   const navigation = useNavigation();
   const [selectedIndex, setSelectedIndex] = useState(0);
-
   const dynamicStyles = StyleSheet.create({
     safeArea: {
       flex: 1,
@@ -84,7 +85,9 @@ const Summary = () => {
         }}
       />
 
-      {/* Rest of the screen content */}
+      {selectedIndex === 0 ? <FullLibrary /> : null}
+      {selectedIndex === 1 ? <FullLibrary /> : null}
+      {selectedIndex === 2 ? <NewMeal /> : null}
     </SafeAreaView>
   );
 };

@@ -16,7 +16,7 @@ const setupDatabaseAsync = async (): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        "CREATE TABLE IF NOT EXISTS meals (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, type TEXT, carbs REAL, proteins REAL, fats REAL, timestamp INTEGER, image_path TEXT);",
+        "CREATE TABLE IF NOT EXISTS meals (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, type TEXT, carbs REAL, proteins REAL, fats REAL, timestamp INTEGER, image_path TEXT, favorite BOOLEAN NOT NULL DEFAULT 0);",
         [],
         () => {
           resolve();
@@ -44,7 +44,7 @@ const insertMealAsync = async (
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        "INSERT INTO meals (name, type, carbs, proteins, fats, timestamp, image_path) VALUES (?, ?, ?, ?, ?, ?, ?);",
+        "INSERT INTO meals (name, type, carbs, proteins, fats, timestamp, image_path, favorite) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
         [
           meal.name,
           meal.type,
@@ -53,6 +53,7 @@ const insertMealAsync = async (
           meal.fats,
           meal.timestamp,
           imagePath,
+          meal.favorite ? 1 : 0, // Convert boolean to integer for SQLite
         ],
         () => {
           resolve();
@@ -130,9 +131,34 @@ const updateMealByIdAsync = async (id: number, meal: Meal): Promise<void> => {
   });
 };
 
+const fetchMealsInRangeAsync = async (
+  startIndex: number,
+  count: number
+): Promise<MealEntry[]> => {
+  return new Promise((resolve, reject) => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        "SELECT * FROM meals ORDER BY timestamp DESC LIMIT ? OFFSET ?;",
+        [count, startIndex],
+        (_, result) => {
+          resolve(result.rows._array as MealEntry[]);
+        },
+        (_, error) => {
+          reject(error);
+          return false;
+        }
+      );
+    });
+  });
+};
+
 type MealsDatabaseContextProps = {
   dailyMeals: MealEntry[];
   weeklyMeals: MealEntry[];
+  fetchMealsInRangeAsync: (
+    startIndex: number,
+    count: number
+  ) => Promise<MealEntry[]>;
   insertMeal: (meal: Meal, tmpImageUri: string) => Promise<void>;
   deleteMealById: (id: number) => Promise<void>;
   updateMealById: (id: number, meal: Meal) => Promise<void>;
@@ -142,6 +168,7 @@ type MealsDatabaseContextProps = {
 const MealsDatabaseContext = createContext<MealsDatabaseContextProps>({
   dailyMeals: [],
   weeklyMeals: [],
+  fetchMealsInRangeAsync: async (startIndex: number, count: number) => [],
   insertMeal: async () => {},
   deleteMealById: async () => {},
   updateMealById: async () => {},
@@ -168,16 +195,22 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const timestampToday = Math.floor(startOfToday.getTime() / 1000);
-  
+
     const startOfWeek = new Date();
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + (startOfWeek.getDay() === 0 ? -6 : 1));
+    startOfWeek.setDate(
+      startOfWeek.getDate() -
+        startOfWeek.getDay() +
+        (startOfWeek.getDay() === 0 ? -6 : 1)
+    );
     startOfWeek.setHours(0, 0, 0, 0);
     const timestampWeek = Math.floor(startOfWeek.getTime() / 1000);
-  
+
     const mealsSinceWeek = await fetchMealsSinceTimestamp(timestampWeek);
-  
-    const mealsForToday = mealsSinceWeek.filter(meal => meal.timestamp >= timestampToday);
-  
+
+    const mealsForToday = mealsSinceWeek.filter(
+      (meal) => meal.timestamp >= timestampToday
+    );
+
     setDailyMeals(mealsForToday);
     setWeeklyMeals(mealsSinceWeek);
   };
@@ -205,6 +238,7 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
         insertMeal,
         deleteMealById,
         updateMealById,
+        fetchMealsInRangeAsync,
         refreshMeals,
       }}
     >

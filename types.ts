@@ -13,6 +13,7 @@ type Meal = Macro & {
   name: string;
   type: string;
   timestamp: number;
+  favorite: boolean;
 };
 
 type ApiResponse = {
