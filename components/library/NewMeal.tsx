@@ -8,10 +8,13 @@ import {
   TouchableOpacity,
   ScrollView,
   Keyboard,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  Image,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { useColorScheme } from "react-native";
 import { calculateCalories } from "../../utils/food";
+import AddMeal from "../addmeal/AddMeal";
 
 const NewMeal = () => {
   const scheme = useColorScheme();
@@ -21,26 +24,56 @@ const NewMeal = () => {
   const [proteins, setProteins] = useState("");
   const [fats, setFats] = useState("");
   const [totalCalories, setTotalCalories] = useState(0);
+  const [status, requestPermission] = ImagePicker.useCameraPermissions();
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  const [isReady, setIsReady] = useState<boolean>(false);
+  const [ aiLoading, setAiLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsReady(Boolean(mealName) && Boolean(selectedImage));
+  }, [mealName, selectedImage]);
 
   useEffect(() => {
     const calories = calculateCalories({
       carbs: carbs ? parseFloat(carbs) : 0,
       proteins: proteins ? parseFloat(proteins) : 0,
-      fats: fats ? parseFloat(fats) : 0
+      fats: fats ? parseFloat(fats) : 0,
     });
     setTotalCalories(calories);
   }, [carbs, proteins, fats]);
 
-  const handleChooseImage = () => {
-    console.log("Image picker triggered");
+  const handleChooseImage = async () => {
+    if (status.granted) {
+      let imageResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        exif: false,
+        quality: 0.075,
+      });
+      if (!imageResult.canceled && imageResult.assets) {
+        setSelectedImage(imageResult.assets[0]);
+      }
+    } else if (status.canAskAgain) {
+      await requestPermission();
+    } else {
+      alert(
+        "DietGPT needs your permission to use your camera. You can allow it in your iOS settings."
+      );
+    }
   };
 
   const handleAddMeal = () => {
-    console.log("Meal added:", { mealName, carbs, proteins, fats, totalCalories });
-    // Here you can add logic to save the meal data
+    console.log("Meal added:", {
+      mealName,
+      carbs,
+      proteins,
+      fats,
+      totalCalories,
+    });
   };
 
-  const dynamicStyles = getDynamicStyles(scheme);
+  const dynamicStyles = getDynamicStyles(scheme, isReady);
 
   return (
     <SafeAreaView style={dynamicStyles.container}>
@@ -99,94 +132,149 @@ const NewMeal = () => {
       </TouchableWithoutFeedback>
 
       <View style={dynamicStyles.buttonContainer}>
+        <View style={dynamicStyles.imageButtonContainer}>
+          <TouchableOpacity
+            style={
+              selectedImage
+                ? dynamicStyles.secondaryButtonSelected
+                : dynamicStyles.fullWidthButton
+            }
+            onPress={handleChooseImage}
+          >
+            <Text style={dynamicStyles.buttonText}>
+              {selectedImage ? "Change Image" : "Choose an Image"}
+            </Text>
+          </TouchableOpacity>
+          {selectedImage && (
+            <Image
+              source={{ uri: selectedImage.uri }}
+              style={dynamicStyles.imageThumbnail}
+            />
+          )}
+        </View>
+        {selectedImage && (
+          <TouchableOpacity
+            style={[
+              dynamicStyles.secondaryButton,
+              dynamicStyles.additionalMargin,
+            ]}
+            onPress={() => {setAiLoading(true)}}
+          >
+            <Text style={dynamicStyles.buttonText}>Fill with AI</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
-          style={dynamicStyles.secondaryButton}
-          onPress={handleChooseImage}
-        >
-          <Text style={dynamicStyles.secondaryButtonText}>
-            Choose an Image
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={dynamicStyles.button}
+          style={[dynamicStyles.button, dynamicStyles.additionalMargin]}
+          disabled={!isReady}
           onPress={handleAddMeal}
         >
           <Text style={dynamicStyles.buttonText}>Add Meal</Text>
         </TouchableOpacity>
       </View>
+      {aiLoading ? <AddMeal image={selectedImage} addMealFunction={(meal, imageUri) => {
+        console.log(meal, imageUri);
+      }} close={() => setAiLoading(false)} /> : null}
+
     </SafeAreaView>
   );
 };
 
-const getDynamicStyles = (scheme) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: scheme === "dark" ? "#000" : "#F2F1F6",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  form: {
-    marginHorizontal: 20,
-  },
-  inputGroup: {
-    marginBottom: 15,
-  },
-  inputGroupRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  label: {
-    color: scheme === "dark" ? "#FFF" : "#000",
-    marginBottom: 5,
-    flex: 1,
-  },
-  input: {
-    backgroundColor: scheme === "dark" ? "#333" : "#FFF",
-    borderWidth: 1,
-    borderColor: scheme === "dark" ? "#555" : "#DDD",
-    padding: 10,
-    borderRadius: 5,
-    color: scheme === "dark" ? "#FFF" : "#000",
-    minHeight: 40,
-  },
-  caloriesLabel: {
-    color: scheme === "dark" ? "#FFF" : "#000",
-    fontSize: 16,
-  },
-  calories: {
-    color: scheme === "dark" ? "#FFF" : "#000",
-    fontSize: 16,
-    marginLeft: 5,
-  },
-  buttonContainer: {
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-  },
-  button: {
-    backgroundColor: scheme === "dark" ? "#1A73E8" : "#007AFF",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 10,
-  },
-  buttonText: {
-    color: "#FFF",
-    fontSize: 18,
-  },
-  secondaryButton: {
-    backgroundColor: scheme === "dark" ? "#343438" : "#dfdfe8",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  secondaryButtonText: {
-    color: scheme === "dark" ? "#FFF" : "#5b5b5c",
-    fontSize: 18,
-  },
-});
+const getDynamicStyles = (scheme: "dark" | "light", isReady: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: scheme === "dark" ? "#000" : "#F2F1F6",
+    },
+    scrollView: {
+      flex: 1,
+    },
+    form: {
+      marginHorizontal: 20,
+    },
+    inputGroup: {
+      marginBottom: 15,
+    },
+    inputGroupRow: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    label: {
+      color: scheme === "dark" ? "#FFF" : "#000",
+      marginBottom: 5,
+      flex: 1,
+    },
+    input: {
+      backgroundColor: scheme === "dark" ? "#333" : "#FFF",
+      borderWidth: 1,
+      borderColor: scheme === "dark" ? "#555" : "#DDD",
+      padding: 10,
+      borderRadius: 5,
+      color: scheme === "dark" ? "#FFF" : "#000",
+      minHeight: 40,
+    },
+    caloriesLabel: {
+      color: scheme === "dark" ? "#FFF" : "#000",
+      fontSize: 16,
+    },
+    calories: {
+      color: scheme === "dark" ? "#FFF" : "#000",
+      fontSize: 16,
+      marginLeft: 5,
+    },
+    buttonContainer: {
+      paddingBottom: 15,
+      paddingHorizontal: 15,
+    },
+    button: {
+      backgroundColor: scheme === "dark" ? "#1A73E8" : "#007AFF",
+      padding: 15,
+      borderRadius: 10,
+      alignItems: "center",
+      opacity: isReady ? 1 : 0.5,
+      marginTop: 15,
+    },
+    buttonText: {
+      color: "#FFF",
+      opacity: isReady ? 1 : 0.5,
+      fontSize: 18,
+    },
+    fullWidthButton: {
+      backgroundColor: scheme === "dark" ? "#343438" : "#dfdfe8",
+      padding: 15,
+      borderRadius: 10,
+      alignItems: "center",
+      flex: 1,
+    },
+    secondaryButton: {
+      backgroundColor: scheme === "dark" ? "#343438" : "#dfdfe8",
+      padding: 15,
+      borderRadius: 10,
+      alignItems: "center",
+    },
+    secondaryButtonText: {
+      color: scheme === "dark" ? "#FFF" : "#5b5b5c",
+      fontSize: 18,
+    },
+    imageButtonContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    secondaryButtonSelected: {
+      backgroundColor: scheme === "dark" ? "#5E5CE6" : "#A4A4FF",
+      padding: 15,
+      borderRadius: 10,
+      flex: 1,
+      marginRight: 15,
+    },
+    imageThumbnail: {
+      width: 50,
+      height: 50,
+      borderRadius: 10,
+    },
+    additionalMargin: {
+      marginTop: 15,
+    },
+  });
 
 export default NewMeal;

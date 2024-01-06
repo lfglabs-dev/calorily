@@ -4,14 +4,19 @@ import { useHealthData } from "../shared/HealthDataContext";
 
 const useDailyCaloriesGoal = () => {
   const { settings } = useApplicationSettings();
-  const { dailyActiveEnergyBurned } = useHealthData();
+  const { lastWeight, dailyActiveEnergyBurned } = useHealthData();
   const [dailyCaloriesGoal, setDailyCaloriesGoal] = useState(0);
 
   useEffect(() => {
     if (settings) {
-      setDailyCaloriesGoal(
-        settings.metabolicData.basalMetabolicRate + dailyActiveEnergyBurned
-      );
+      let totalEnergy =
+        settings.metabolicData.basalMetabolicRate + dailyActiveEnergyBurned;
+      if (lastWeight > settings.metabolicData.targetMaximumWeight) {
+        totalEnergy -= settings.metabolicData.targetCaloricDeficit;
+      } else if (lastWeight < settings.metabolicData.targetMinimumWeight) {
+        totalEnergy += settings.metabolicData.targetCaloricSurplus;
+      }
+      setDailyCaloriesGoal(totalEnergy);
     }
   }, [settings, dailyActiveEnergyBurned]);
 

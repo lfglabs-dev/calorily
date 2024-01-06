@@ -179,7 +179,7 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
     if (lastBodyFat !== null) {
       // Katch-McArdle formula
       const leanBodyMass = lastWeight * (1 - lastBodyFat / 100);
-      BMR = 370 + 21.6 * leanBodyMass;
+      BMR = 370 + (21.6 * leanBodyMass) / 1000;
     } else {
       let height: number;
       // Fetch height

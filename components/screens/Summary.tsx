@@ -10,10 +10,12 @@ import * as ImagePicker from "expo-image-picker";
 import CaloriesGoalCard from "../cards/CaloriesGoal";
 import PastMeals from "../cards/PastMeals";
 import AddMeal from "../addmeal/AddMeal";
+import { useMealsDatabase } from "../../shared/MealsStorageContext";
 
 const Summary = ({ navigation }) => {
   const scheme = useColorScheme();
   const [status, requestPermission] = ImagePicker.useCameraPermissions();
+  const { insertMeal } = useMealsDatabase();
   const [image, setImage] = useState(null);
 
   const dynamicStyles = StyleSheet.create({
@@ -89,7 +91,7 @@ const Summary = ({ navigation }) => {
       <TouchableOpacity style={dynamicStyles.mainButton} onPress={pickImage}>
         <Text style={dynamicStyles.mainButtonText}>Quickly Add Meal</Text>
       </TouchableOpacity>
-      {image ? <AddMeal image={image} close={() => setImage(null)} /> : null}
+      {image ? <AddMeal image={image} addMealFunction={insertMeal} close={() => setImage(null)} /> : null}
     </View>
   );
 };

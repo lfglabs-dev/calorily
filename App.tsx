@@ -19,12 +19,7 @@ import { HealthDataProvider } from "./shared/HealthDataContext";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 const Tab = createBottomTabNavigator();
-export const ApplicationSettingsContext = createContext({
-  dailyGoals: {
-    caloriesIn: 2500,
-    caloriesOut: 500,
-  },
-});
+export const ApplicationSettingsContext = createContext({});
 
 const SummaryStack = createNativeStackNavigator();
 

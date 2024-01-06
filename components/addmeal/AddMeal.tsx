@@ -10,7 +10,6 @@ import {
 import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import * as ImageManipulator from "expo-image-manipulator";
 import { styles } from "./styles";
-import { exampleResponse } from "./mockup";
 import { ImagePickerAsset } from "expo-image-picker";
 import { CustomBackground } from "./CustomBackground";
 import { CustomHandle } from "./CustomHandle";
@@ -23,10 +22,11 @@ import {
   totalProteins,
 } from "../../utils/food";
 import LongTextInputDialog from "./FixBugDialog";
+import { exampleResponse } from "./mockup";
 
 const SNAP_POINTS = ["90%"];
 
-const AddMeal = ({ image, close }) => {
+const AddMeal = ({ image, addMealFunction, close }) => {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const colorScheme = useColorScheme();
   const [isLoading, setIsLoading] = useState(false);
@@ -35,8 +35,7 @@ const AddMeal = ({ image, close }) => {
   const [ingredients, setIngredients] = useState<ExtendedIngredient[]>([]);
   const [resizedImage, setResizedImage] =
     useState<ImageManipulator.ImageResult | null>(null);
-  const { insertMeal } = useMealsDatabase();
-  const [lastResponse, setLastResponse] = useState<string>(null);
+  const [lastResponse, setLastResponse] = useState(null);
   const [dialogVisible, setDialogVisible] = useState(false);
 
   const loadResponse = (data: ApiResponse) => {
@@ -81,22 +80,22 @@ const AddMeal = ({ image, close }) => {
   const fetchIngredients = async (b64Image: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch("https://api.dietgpt.gouv.media/food_data", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ b64_img: b64Image }),
-      });
-      const responseJson = await response.json();
-      setLastResponse(responseJson);
+      // const response = await fetch("https://api.dietgpt.gouv.media/food_data", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify({ b64_img: b64Image }),
+      // });
+      // const responseJson = await response.json();
+      setLastResponse(exampleResponse);
       //Simulate network request delay
 
-      // function delay(ms) {
-      //   return new Promise((resolve) => setTimeout(resolve, ms));
-      // }
-      // await delay(3000);
-      loadResponse(responseJson);
+      function delay(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+      await delay(3000);
+      loadResponse(exampleResponse);
     } catch (error) {
       console.error(error);
     } finally {
@@ -201,7 +200,7 @@ const AddMeal = ({ image, close }) => {
                   timestamp: Math.floor(Date.now() / 1000),
                   favorite: false,
                 };
-                insertMeal(meal, resizedImage.uri);
+                addMealFunction(meal, resizedImage.uri);
                 bottomSheetRef.current.close();
               }}
             >

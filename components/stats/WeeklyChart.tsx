@@ -5,8 +5,6 @@ import { LinearGradient, useFont, vec } from "@shopify/react-native-skia";
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import { getDailyCalories, totalCalories } from "../../utils/food";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { useHealthData } from "../../shared/HealthDataContext";
-import { useApplicationSettings } from "../../shared/ApplicationSettingsContext";
 
 const styles = (scheme) =>
   StyleSheet.create({
@@ -23,45 +21,29 @@ const styles = (scheme) =>
 const WeeklyCalories = () => {
   const font = useFont(require("../../assets/SFProText-Regular.ttf"), 12);
   const scheme = useColorScheme();
-  const { settings } = useApplicationSettings();
   const { weeklyMeals } = useMealsDatabase();
-  const { weeklyActivity } = useHealthData();
   const dailyCalories = getDailyCalories(weeklyMeals);
 
-  const getLast7DaysCaloriesIn = () => {
+  // Function to generate last 7 dates
+  const getLast7Days = () => {
     return Array.from({ length: 7 })
       .map((_, i) => {
         const date = new Date();
         date.setDate(date.getDate() - i);
-        return date.toISOString().split("T")[0];
+        return date.toISOString().split("T")[0]; // Format as 'YYYY-MM-DD'
       })
       .reverse();
   };
 
-  const last7Days = getLast7DaysCaloriesIn();
-
-  const data = last7Days.map((date) => {
-    const dailyIntake = dailyCalories[date]
-      ? totalCalories(dailyCalories[date])
-      : 0;
-    const dailyActivityBurn =
-      weeklyActivity.find(
-        (activity) => activity.startDate.split("T")[0] === date
-      )?.value || 0;
-    const caloricChange =
-      dailyIntake -
-      (settings.metabolicData.basalMetabolicRate + dailyActivityBurn);
-
-    return {
-      date,
-      caloricChange,
-    };
-  });
+  // Merging the last 7 days with dailyCalories data
+  const last7Days = getLast7Days();
+  const data = last7Days.map((date) => ({
+    date,
+    calorieCount: dailyCalories[date] ? totalCalories(dailyCalories[date]) : 0,
+  }));
 
   const lightLinesColor = "gray";
   const linesColor = "gray";
-  const minY = Math.min(...data.map((item) => item.caloricChange));
-  const maxY = Math.max(...data.map((item) => item.caloricChange));
 
   return (
     <>
@@ -73,7 +55,7 @@ const WeeklyCalories = () => {
           paddingBottom: 15,
         }}
       >
-        Weekly caloric change
+        Weekly calories in
       </Text>
 
       {weeklyMeals.length === 0 ? (
@@ -107,9 +89,8 @@ const WeeklyCalories = () => {
           <CartesianChart
             data={data}
             xKey="date"
-            yKeys={["caloricChange"]}
+            yKeys={["calorieCount"]}
             domainPadding={{ left: 50, right: 50, top: 30 }}
-            domain={{ y: [minY, maxY] }}
             axisOptions={{
               lineColor: scheme === "dark" ? linesColor : lightLinesColor,
               labelColor: scheme === "dark" ? linesColor : lightLinesColor,
@@ -125,7 +106,7 @@ const WeeklyCalories = () => {
             {({ points, chartBounds }) => (
               <Bar
                 chartBounds={chartBounds}
-                points={points.caloricChange}
+                points={points.calorieCount}
                 roundedCorners={{
                   topLeft: 5,
                   topRight: 5,
