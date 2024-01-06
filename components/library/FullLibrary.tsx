@@ -15,20 +15,19 @@ import { useMealsDatabase } from "../../shared/MealsStorageContext";
 const FullLibrary = () => {
   const scheme = useColorScheme();
   const { fetchMealsInRangeAsync } = useMealsDatabase();
-  const [meals, setMeals] = useState([]);
+  const [meals, setMeals] = useState<Array<MealEntry>>([]);
 
   useEffect(() => {
     fetchMealsInRangeAsync(0, 100).then(setMeals);
   }, []);
 
-  console.log(meals);
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.grid}>
         {meals.map((meal, index) => (
           <View key={index} style={styles.mealContainer}>
             <ImageBackground
-              source={{ uri: meal.image_path }}
+              source={{ uri: meal.image_uri }}
               style={styles.mealImage}
               imageStyle={styles.imageStyle}
             >

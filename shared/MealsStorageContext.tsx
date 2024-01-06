@@ -10,13 +10,11 @@ import * as FileSystem from "expo-file-system";
 
 const db = SQLite.openDatabase("meals.db");
 
-type MealEntry = Meal & { id: number; image_uri: string };
-
 const setupDatabaseAsync = async (): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        "CREATE TABLE IF NOT EXISTS meals (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, type TEXT, carbs REAL, proteins REAL, fats REAL, timestamp INTEGER, image_path TEXT, favorite BOOLEAN NOT NULL DEFAULT 0);",
+        "CREATE TABLE IF NOT EXISTS meals (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, type TEXT, carbs REAL, proteins REAL, fats REAL, timestamp INTEGER, image_uri TEXT, favorite BOOLEAN NOT NULL DEFAULT 0);",
         [],
         () => {
           resolve();
@@ -44,10 +42,9 @@ const insertMealAsync = async (
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        "INSERT INTO meals (name, type, carbs, proteins, fats, timestamp, image_path, favorite) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+        "INSERT INTO meals (name, carbs, proteins, fats, timestamp, image_uri, favorite) VALUES (?, ?, ?, ?, ?, ?, ?);",
         [
           meal.name,
-          meal.type,
           meal.carbs,
           meal.proteins,
           meal.fats,
@@ -109,16 +106,8 @@ const updateMealByIdAsync = async (id: number, meal: Meal): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        "UPDATE meals SET name = ?, type = ?, carbs = ?, proteins = ?, fats = ?, timestamp = ? WHERE id = ?;",
-        [
-          meal.name,
-          meal.type,
-          meal.carbs,
-          meal.proteins,
-          meal.fats,
-          meal.timestamp,
-          id,
-        ],
+        "UPDATE meals SET name = ?, carbs = ?, proteins = ?, fats = ?, timestamp = ? WHERE id = ?;",
+        [meal.name, meal.carbs, meal.proteins, meal.fats, meal.timestamp, id],
         () => {
           resolve();
         },

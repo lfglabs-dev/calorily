@@ -10,29 +10,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useMealsDatabase } from "../../../shared/MealsStorageContext";
 import { calculateCalories } from "../../../utils/food";
 
-function getMealColor(scheme, mealType) {
-  const colorsDark = {
-    Breakfast: "#00b894",
-    Lunch: "#0984e3",
-    Dinner: "#fdcb6e",
-    Snacks: "#6c5ce7",
-  };
-
-  const colorsLight = {
-    Breakfast: "#55efc4",
-    Lunch: "#74b9ff",
-    Dinner: "#ffeaa7",
-    Snacks: "#a29bfe",
-  };
-
-  if (scheme === "dark") {
-    return colorsDark[mealType] || "#e84393";
-  } else {
-    return colorsLight[mealType] || "#fd79a8";
-  }
-}
-
-const PastMealCard = ({ meal }) => {
+const PastMealCard = ({ meal }: { meal: MealEntry }) => {
   const scheme = useColorScheme();
   const { deleteMealById } = useMealsDatabase();
 
@@ -57,7 +35,7 @@ const PastMealCard = ({ meal }) => {
       marginBottom: 10,
     },
     badge: {
-      backgroundColor: getMealColor(scheme, meal.type),
+      backgroundColor: scheme === "dark" ? "#e84393" : "#fd79a8",
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 15,
@@ -110,7 +88,7 @@ const PastMealCard = ({ meal }) => {
 
   return (
     <ImageBackground
-      source={{ uri: meal.image_path }}
+      source={{ uri: meal.image_uri }}
       style={{ marginHorizontal: 20, height: "100%" }}
       resizeMode="cover"
       imageStyle={cardStyles.card}
@@ -125,9 +103,9 @@ const PastMealCard = ({ meal }) => {
           <FontAwesome name="close" size={24} color="#A9A9A9" />
         </TouchableOpacity>
         <Text style={cardStyles.title}>{meal.name}</Text>
-        <View style={cardStyles.badge}>
+        {/* <View style={cardStyles.badge}>
           <Text style={cardStyles.badgeText}>{meal.type}</Text>
-        </View>
+        </View> */}
         <View style={cardStyles.detailRow}>
           <Text style={cardStyles.fieldName}>Carbs:</Text>
           <Text style={cardStyles.fieldValue}>{meal.carbs.toFixed(1)}g</Text>

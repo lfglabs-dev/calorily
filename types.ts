@@ -11,10 +11,11 @@ type Ingredient = Macro & {
 
 type Meal = Macro & {
   name: string;
-  type: string;
   timestamp: number;
   favorite: boolean;
 };
+
+type MealEntry = Meal & { id: number; image_uri: string };
 
 type ApiResponse = {
   type: string;

@@ -65,7 +65,10 @@ const Summary = ({ navigation }) => {
         exif: false,
         quality: 0.075,
       });
-      if (!imageResult.canceled) setImage(imageResult);
+      if (!imageResult.canceled && imageResult.assets) {
+        console.log(imageResult);
+        setImage(imageResult.assets[0]);
+      }
     } else if (status.canAskAgain) {
       await requestPermission();
     } else {
@@ -82,7 +85,7 @@ const Summary = ({ navigation }) => {
       <PastMeals />
       <TouchableOpacity
         style={dynamicStyles.secondaryButton}
-        onPress={() => navigation.navigate('MealsLibrary')}
+        onPress={() => navigation.navigate("MealsLibrary")}
       >
         <Text style={dynamicStyles.secondaryButtonText}>
           Open Meals Library
@@ -91,7 +94,14 @@ const Summary = ({ navigation }) => {
       <TouchableOpacity style={dynamicStyles.mainButton} onPress={pickImage}>
         <Text style={dynamicStyles.mainButtonText}>Quickly Add Meal</Text>
       </TouchableOpacity>
-      {image ? <AddMeal image={image} addMealFunction={insertMeal} close={() => setImage(null)} /> : null}
+      {image ? (
+        <AddMeal
+          image={image}
+          resized={null}
+          addMealFunction={insertMeal}
+          close={() => setImage(null)}
+        />
+      ) : null}
     </View>
   );
 };

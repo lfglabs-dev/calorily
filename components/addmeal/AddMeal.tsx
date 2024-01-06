@@ -8,13 +8,10 @@ import {
   useColorScheme,
 } from "react-native";
 import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
-import * as ImageManipulator from "expo-image-manipulator";
 import { styles } from "./styles";
-import { ImagePickerAsset } from "expo-image-picker";
 import { CustomBackground } from "./CustomBackground";
 import { CustomHandle } from "./CustomHandle";
 import { IngredientItem } from "./IngredientItem";
-import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import {
   calculateCalories,
   totalCarbs,
@@ -23,18 +20,18 @@ import {
 } from "../../utils/food";
 import LongTextInputDialog from "./FixBugDialog";
 import { exampleResponse } from "./mockup";
+import useResizedImage from "../../hooks/useResizedImage";
 
 const SNAP_POINTS = ["90%"];
 
-const AddMeal = ({ image, addMealFunction, close }) => {
+const AddMeal = ({ image, resized, addMealFunction, close }) => {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const colorScheme = useColorScheme();
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState<string>(null);
   const [type, setType] = useState<string>(null);
   const [ingredients, setIngredients] = useState<ExtendedIngredient[]>([]);
-  const [resizedImage, setResizedImage] =
-    useState<ImageManipulator.ImageResult | null>(null);
+  const resizedImage = resized ? resized : useResizedImage(image);
   const [lastResponse, setLastResponse] = useState(null);
   const [dialogVisible, setDialogVisible] = useState(false);
 
@@ -88,13 +85,12 @@ const AddMeal = ({ image, addMealFunction, close }) => {
       //   body: JSON.stringify({ b64_img: b64Image }),
       // });
       // const responseJson = await response.json();
-      setLastResponse(exampleResponse);
       //Simulate network request delay
-
       function delay(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
       }
       await delay(3000);
+      setLastResponse(exampleResponse);
       loadResponse(exampleResponse);
     } catch (error) {
       console.error(error);
@@ -108,26 +104,6 @@ const AddMeal = ({ image, addMealFunction, close }) => {
     newIngredients[index].selected = !newIngredients[index].selected;
     setIngredients(newIngredients);
   };
-
-  const resizeAndConvertToBase64 = async (asset: ImagePickerAsset) => {
-    try {
-      const resizedImage = await ImageManipulator.manipulateAsync(
-        asset.uri,
-        [{ resize: { width: 896 } }],
-        { compress: 1, format: ImageManipulator.SaveFormat.JPEG, base64: true }
-      );
-      return resizedImage;
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  useEffect(() => {
-    if (image?.assets) {
-      const selectedImage = image.assets[0];
-      resizeAndConvertToBase64(selectedImage).then(setResizedImage);
-    }
-  }, [image]);
 
   useEffect(() => {
     if (resizedImage?.base64) {
@@ -148,7 +124,7 @@ const AddMeal = ({ image, addMealFunction, close }) => {
         {isLoading ? (
           <View style={styles(colorScheme).container}>
             <Image
-              source={{ uri: image.assets?.[0].uri }}
+              source={{ uri: image.uri }}
               style={styles(colorScheme).image}
               blurRadius={100}
             />
@@ -181,7 +157,6 @@ const AddMeal = ({ image, addMealFunction, close }) => {
               style={styles(colorScheme).secondaryButton}
               onPress={() => {
                 setDialogVisible(true);
-                console.log("hello");
               }}
             >
               <Text style={styles(colorScheme).secondaryButtonText}>

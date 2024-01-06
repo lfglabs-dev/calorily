@@ -15,24 +15,25 @@ import * as ImagePicker from "expo-image-picker";
 import { useColorScheme } from "react-native";
 import { calculateCalories } from "../../utils/food";
 import AddMeal from "../addmeal/AddMeal";
+import { useMealsDatabase } from "../../shared/MealsStorageContext";
+import useResizedImage from "../../hooks/useResizedImage";
+import { useNavigation } from "@react-navigation/native";
 
-const NewMeal = () => {
+const NewMeal = ({ setPopupComponent }) => {
   const scheme = useColorScheme();
+  const [status, requestPermission] = ImagePicker.useCameraPermissions();
 
   const [mealName, setMealName] = useState("");
   const [carbs, setCarbs] = useState("");
   const [proteins, setProteins] = useState("");
   const [fats, setFats] = useState("");
   const [totalCalories, setTotalCalories] = useState(0);
-  const [status, requestPermission] = ImagePicker.useCameraPermissions();
   const [selectedImage, setSelectedImage] = useState(null);
+  const resizedImage = useResizedImage(selectedImage);
 
-  const [isReady, setIsReady] = useState<boolean>(false);
-  const [ aiLoading, setAiLoading] = useState<boolean>(false);
-
-  useEffect(() => {
-    setIsReady(Boolean(mealName) && Boolean(selectedImage));
-  }, [mealName, selectedImage]);
+  const { insertMeal } = useMealsDatabase();
+  const navigation = useNavigation();
+  const isReady = Boolean(mealName) && Boolean(selectedImage);
 
   useEffect(() => {
     const calories = calculateCalories({
@@ -64,6 +65,17 @@ const NewMeal = () => {
   };
 
   const handleAddMeal = () => {
+    insertMeal(
+      {
+        name: mealName,
+        timestamp: Math.floor(Date.now() / 1000),
+        carbs: parseFloat(carbs),
+        fats: parseFloat(fats),
+        proteins: parseFloat(proteins),
+        favorite: false,
+      },
+      resizedImage.uri
+    );
     console.log("Meal added:", {
       mealName,
       carbs,
@@ -71,6 +83,7 @@ const NewMeal = () => {
       fats,
       totalCalories,
     });
+    navigation.goBack();
   };
 
   const dynamicStyles = getDynamicStyles(scheme, isReady);
@@ -158,7 +171,22 @@ const NewMeal = () => {
               dynamicStyles.secondaryButton,
               dynamicStyles.additionalMargin,
             ]}
-            onPress={() => {setAiLoading(true)}}
+            onPress={() => {
+              setPopupComponent(
+                <AddMeal
+                  image={selectedImage}
+                  resized={resizedImage}
+                  addMealFunction={(meal, imageUri) => {
+                    setMealName(meal.name);
+                    setCarbs(meal.carbs.toFixed(0));
+                    setFats(meal.fats.toFixed(0));
+                    setProteins(meal.proteins.toFixed(0));
+                    console.log("meal info:", meal, imageUri);
+                  }}
+                  close={() => setPopupComponent(null)}
+                />
+              );
+            }}
           >
             <Text style={dynamicStyles.buttonText}>Fill with AI</Text>
           </TouchableOpacity>
@@ -168,13 +196,9 @@ const NewMeal = () => {
           disabled={!isReady}
           onPress={handleAddMeal}
         >
-          <Text style={dynamicStyles.buttonText}>Add Meal</Text>
+          <Text style={dynamicStyles.mealButtonText}>Add Meal</Text>
         </TouchableOpacity>
       </View>
-      {aiLoading ? <AddMeal image={selectedImage} addMealFunction={(meal, imageUri) => {
-        console.log(meal, imageUri);
-      }} close={() => setAiLoading(false)} /> : null}
-
     </SafeAreaView>
   );
 };
@@ -235,8 +259,12 @@ const getDynamicStyles = (scheme: "dark" | "light", isReady: boolean) =>
     },
     buttonText: {
       color: "#FFF",
-      opacity: isReady ? 1 : 0.5,
       fontSize: 18,
+    },
+    mealButtonText: {
+      color: "#FFF",
+      fontSize: 18,
+      opacity: isReady ? 1 : 0.5,
     },
     fullWidthButton: {
       backgroundColor: scheme === "dark" ? "#343438" : "#dfdfe8",

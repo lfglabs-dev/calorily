@@ -17,6 +17,7 @@ const Summary = () => {
   const scheme = useColorScheme();
   const navigation = useNavigation();
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [popupComponent, setPopupComponent] = useState(null);
   const dynamicStyles = StyleSheet.create({
     safeArea: {
       flex: 1,
@@ -87,7 +88,9 @@ const Summary = () => {
 
       {selectedIndex === 0 ? <FullLibrary /> : null}
       {selectedIndex === 1 ? <FullLibrary /> : null}
-      {selectedIndex === 2 ? <NewMeal /> : null}
+      {selectedIndex === 2 ? <NewMeal setPopupComponent={setPopupComponent} /> : null}
+
+      {popupComponent}
     </SafeAreaView>
   );
 };
