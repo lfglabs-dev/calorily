@@ -18,7 +18,8 @@ type Meal = Macro & {
 type MealEntry = Meal & { id: number; image_uri: string };
 
 type ApiResponse = {
-  type: string;
   name: string;
   ingredients: Ingredient[];
+  error: undefined | string;
+  response: undefined | string;
 };

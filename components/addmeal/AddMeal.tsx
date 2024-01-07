@@ -1,16 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  ActivityIndicator,
-  useColorScheme,
-} from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { View, Text, TouchableOpacity, useColorScheme } from "react-native";
 import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { styles } from "./styles";
-import { CustomBackground } from "./CustomBackground";
-import { CustomHandle } from "./CustomHandle";
+import { CustomBackground } from "./BottomSheet/CustomBackground";
+import { CustomHandle } from "./BottomSheet/CustomHandle";
 import { IngredientItem } from "./IngredientItem";
 import {
   calculateCalories,
@@ -21,34 +14,46 @@ import {
 import LongTextInputDialog from "./FixBugDialog";
 import { exampleResponse } from "./mockup";
 import useResizedImage from "../../hooks/useResizedImage";
+import LoadingMeal from "./Loading";
+import Bug from "./Bug";
 
 const SNAP_POINTS = ["90%"];
 
 const AddMeal = ({ image, resized, addMealFunction, close }) => {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const colorScheme = useColorScheme();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<"loading" | "bug" | "loaded">(
+    "loading"
+  );
   const [name, setName] = useState<string>(null);
-  const [type, setType] = useState<string>(null);
   const [ingredients, setIngredients] = useState<ExtendedIngredient[]>([]);
   const resizedImage = resized ? resized : useResizedImage(image);
-  const [lastResponse, setLastResponse] = useState(null);
+  const [lastResponse, setLastResponse] = useState<ApiResponse>(null);
   const [dialogVisible, setDialogVisible] = useState(false);
 
+  const openComment = () => {
+    setDialogVisible(true);
+  };
+
   const loadResponse = (data: ApiResponse) => {
-    setName(data.name);
-    setType(data.type);
-    setIngredients(
-      data.ingredients.map((item) => ({
-        ...item,
-        calories: calculateCalories(item),
-        selected: true,
-      }))
-    );
+    setLastResponse(data);
+    if (!data || data.error) {
+      setIsLoading("bug");
+    } else {
+      setName(data.name);
+      setIngredients(
+        data.ingredients.map((item) => ({
+          ...item,
+          calories: calculateCalories(item),
+          selected: true,
+        }))
+      );
+      setIsLoading("loaded");
+    }
   };
 
   const handleFindFix = (remark) => {
-    setIsLoading(true);
+    setIsLoading("loading");
     (async () => {
       const response = await fetch(
         "https://api.dietgpt.gouv.media/improve_food_data",
@@ -65,37 +70,31 @@ const AddMeal = ({ image, resized, addMealFunction, close }) => {
           }),
         }
       );
-      const responseJson = await response.json();
-
-      loadResponse(responseJson);
-      setLastResponse(responseJson);
-      setIsLoading(false);
+      loadResponse(await response.json());
     })();
     setDialogVisible(false);
   };
 
   const fetchIngredients = async (b64Image: string) => {
-    setIsLoading(true);
+    setIsLoading("loading");
     try {
-      // const response = await fetch("https://api.dietgpt.gouv.media/food_data", {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      //   body: JSON.stringify({ b64_img: b64Image }),
-      // });
-      // const responseJson = await response.json();
+      const response = await fetch("https://api.dietgpt.gouv.media/food_data", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ b64_img: b64Image }),
+      });
+      const responseJson = await response.json();
+      console.log("responsejson:", responseJson);
       //Simulate network request delay
-      function delay(ms) {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-      }
-      await delay(3000);
-      setLastResponse(exampleResponse);
-      loadResponse(exampleResponse);
+      // function delay(ms) {
+      //   return new Promise((resolve) => setTimeout(resolve, ms));
+      // }
+      // await delay(3000);
+      loadResponse(responseJson);
     } catch (error) {
       console.error(error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -121,26 +120,14 @@ const AddMeal = ({ image, resized, addMealFunction, close }) => {
       onClose={close}
     >
       <View style={styles(colorScheme).contentContainer}>
-        {isLoading ? (
-          <View style={styles(colorScheme).container}>
-            <Image
-              source={{ uri: image.uri }}
-              style={styles(colorScheme).image}
-              blurRadius={100}
-            />
-            <Text style={styles(colorScheme).title}>Analyzing Image</Text>
-            <ActivityIndicator
-              size="large"
-              color={colorScheme === "dark" ? "#fff" : "#000"}
-              style={styles(colorScheme).activityIndicator}
-            />
-          </View>
+        {isLoading === "loading" ? (
+          <LoadingMeal image={image} />
+        ) : isLoading === "bug" ? (
+          <Bug openComment={openComment} response={lastResponse?.response} />
         ) : (
           <>
+            {/* Result showcase */}
             <Text style={styles(colorScheme).resultTitle}>{name}</Text>
-            <View style={styles(colorScheme).mealTypeTag}>
-              <Text style={styles(colorScheme).mealTypeText}>{type}</Text>
-            </View>
             <BottomSheetFlatList
               data={ingredients}
               renderItem={({ item, index }) => (
@@ -151,24 +138,22 @@ const AddMeal = ({ image, resized, addMealFunction, close }) => {
                   toggleSelection={toggleIngredientSelection}
                 />
               )}
-              keyExtractor={(item, index) => index.toString()}
+              keyExtractor={(_item, index) => index.toString()}
             />
+            {/* Result fix */}
             <TouchableOpacity
               style={styles(colorScheme).secondaryButton}
-              onPress={() => {
-                setDialogVisible(true);
-              }}
+              onPress={openComment}
             >
               <Text style={styles(colorScheme).secondaryButtonText}>
                 Fix a bug
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles(colorScheme).addButton}
+              style={styles(colorScheme).mainButton}
               onPress={() => {
                 const meal = {
                   name,
-                  type,
                   carbs: totalCarbs(ingredients),
                   proteins: totalProteins(ingredients),
                   fats: totalFats(ingredients),
@@ -179,7 +164,7 @@ const AddMeal = ({ image, resized, addMealFunction, close }) => {
                 bottomSheetRef.current.close();
               }}
             >
-              <Text style={styles(colorScheme).addButtonText}>Add Meal</Text>
+              <Text style={styles(colorScheme).mainButtonText}>Add Meal</Text>
             </TouchableOpacity>
           </>
         )}

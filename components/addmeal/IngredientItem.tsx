@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Switch } from "react-native";
+import { View, Text } from "react-native";
 import { styles } from "./styles";
 
 type IngredientItemProps = {
@@ -38,27 +38,24 @@ function getCaloriesColor(scheme, calories) {
 
 export const IngredientItem: React.FC<IngredientItemProps> = ({
   item,
-  index,
   colorScheme,
-  toggleSelection,
 }) => (
   <View style={styles(colorScheme).ingredientItem}>
-      <Text
-        style={styles(colorScheme).ingredientText}
-        numberOfLines={1}
-        ellipsizeMode="tail"
-      >
-        {item.name}
-      </Text>
-      <Text
-        style={{
-          color: getCaloriesColor(colorScheme, item.calories),
-          fontWeight: "bold",
-          fontSize: 14,
-        }}
-      >
-        {item.calories.toFixed(1)} kCal
-      </Text>
- 
+    <Text
+      style={styles(colorScheme).ingredientText}
+      numberOfLines={1}
+      ellipsizeMode="tail"
+    >
+      {item.name}
+    </Text>
+    <Text
+      style={{
+        color: getCaloriesColor(colorScheme, item.calories),
+        fontWeight: "bold",
+        fontSize: 14,
+      }}
+    >
+      {item.calories.toFixed(1)} kCal
+    </Text>
   </View>
 );

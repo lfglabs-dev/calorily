@@ -4,11 +4,7 @@ import { useColorScheme } from "react-native";
 import { BottomSheetBackgroundProps } from "@gorhom/bottom-sheet";
 import { useBottomSheet } from "@gorhom/bottom-sheet";
 
-export const CustomHandle: React.FC<BottomSheetBackgroundProps> = ({
-  animatedIndex,
-  animatedPosition,
-}) => {
-  const colorScheme = useColorScheme();
+export const CustomHandle: React.FC<BottomSheetBackgroundProps> = () => {
   const { close } = useBottomSheet();
 
   const handleStyles = StyleSheet.create({

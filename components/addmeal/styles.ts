@@ -71,14 +71,14 @@ export const styles = (colorScheme: StylesProps["colorScheme"]) =>
     switchStyle: {
       marginLeft: 45,
     },
-    addButton: {
+    mainButton: {
       alignItems: "center",
       backgroundColor: colorScheme === "dark" ? "#1A73E8" : "#007AFF",
       padding: 15,
       borderRadius: 10,
       width: "90%",
     },
-    addButtonText: {
+   mainButtonText: {
       color: "#FFF",
       fontSize: 18,
     },

@@ -5,7 +5,6 @@ import { BottomSheetBackgroundProps } from "@gorhom/bottom-sheet";
 
 export const CustomBackground: React.FC<BottomSheetBackgroundProps> = ({
   style,
-  animatedIndex,
 }) => {
   const colorScheme = useColorScheme();
 
