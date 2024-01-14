@@ -11,9 +11,12 @@ const useDailyCaloriesGoal = () => {
     if (settings) {
       let totalEnergy =
         settings.metabolicData.basalMetabolicRate + dailyActiveEnergyBurned;
-      if (lastWeight > settings.metabolicData.targetMaximumWeight) {
+      if (lastWeight / 1000 > settings.metabolicData.targetMaximumWeight) {
         totalEnergy -= settings.metabolicData.targetCaloricDeficit;
-      } else if (lastWeight < settings.metabolicData.targetMinimumWeight) {
+      } else if (
+        lastWeight / 1000 <
+        settings.metabolicData.targetMinimumWeight
+      ) {
         totalEnergy += settings.metabolicData.targetCaloricSurplus;
       }
       setDailyCaloriesGoal(totalEnergy);

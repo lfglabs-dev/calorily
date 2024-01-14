@@ -131,8 +131,6 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
   };
 
   const refreshActiveEnergyBurned = () => {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
     const startOfWeek = new Date();
     startOfWeek.setDate(
       startOfWeek.getDate() -
@@ -161,11 +159,12 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
           console.error("Error fetching active energy burned data:", error);
         } else {
           setWeeklyActivity(results);
+          const startOfToday = new Date();
+          startOfToday.setHours(0, 0, 0, 0);
           const dailyEnergyBurned = results
-            .filter(
-              (item) =>
-                new Date(item.endDate).getTime() >= startOfToday.getTime()
-            )
+            .filter((item) => {
+              return new Date(item.endDate).getTime() >= startOfToday.getTime();
+            })
             .reduce((sum, item) => sum + item.value, 0);
           setDailyActiveEnergyBurned(dailyEnergyBurned);
         }
