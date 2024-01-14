@@ -63,7 +63,7 @@ const WeeklyCalories = () => {
           style={{
             borderRadius: 10,
             width: "100%",
-            height: 200,
+            height: 160,
             alignItems: "center",
             justifyContent: "center",
             backgroundColor: scheme === "dark" ? "#1C1C1E" : "#FFF",
@@ -83,7 +83,7 @@ const WeeklyCalories = () => {
             paddingTop: 15,
             marginBottom: 0,
             width: "100%",
-            height: 200,
+            height: 160,
           }}
         >
           <CartesianChart

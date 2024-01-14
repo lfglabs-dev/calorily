@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, useColorScheme } from "react-native";
 import WeeklyChart from "../stats/WeeklyChart";
 import GoalETA from "../stats/GoalETA";
+import DailyProteins from "../stats/DailyProteins";
 
 const Progress = () => {
   const scheme = useColorScheme();
@@ -37,6 +38,7 @@ const Progress = () => {
     <View style={dynamicStyles.container}>
       <Text style={dynamicStyles.title}>Progress</Text>
       <WeeklyChart />
+      <DailyProteins />
       <GoalETA />
     </View>
   );

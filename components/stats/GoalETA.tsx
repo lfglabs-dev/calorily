@@ -59,7 +59,7 @@ const GoalETA = () => {
       marginBottom: 12,
     },
     header: {
-      marginTop: -10,
+      top: -12,
       flexDirection: "row",
       justifyContent: "flex-end",
       width: "100%",
