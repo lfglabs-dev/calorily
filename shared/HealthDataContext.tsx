@@ -80,7 +80,12 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
           AppleHealthKit.Constants.Permissions.BiologicalSex,
           AppleHealthKit.Constants.Permissions.DateOfBirth,
         ],
-        write: [AppleHealthKit.Constants.Permissions.EnergyConsumed],
+        write: [
+          AppleHealthKit.Constants.Permissions.EnergyConsumed,
+          AppleHealthKit.Constants.Permissions.Protein,
+          AppleHealthKit.Constants.Permissions.Carbohydrates,
+          AppleHealthKit.Constants.Permissions.FatTotal,
+        ],
       },
     } as HealthKitPermissions;
 

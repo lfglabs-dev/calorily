@@ -15,9 +15,9 @@ import * as ImagePicker from "expo-image-picker";
 import { useColorScheme } from "react-native";
 import { calculateCalories } from "../../utils/food";
 import AddMeal from "../addmeal/AddMeal";
-import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import useResizedImage from "../../hooks/useResizedImage";
 import { useNavigation } from "@react-navigation/native";
+import useAddMeal from "../../hooks/useAddMeal";
 
 const NewMeal = ({ setPopupComponent }) => {
   const scheme = useColorScheme();
@@ -31,7 +31,7 @@ const NewMeal = ({ setPopupComponent }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const resizedImage = useResizedImage(selectedImage);
 
-  const { insertMeal } = useMealsDatabase();
+  const addMeal = useAddMeal();
   const navigation = useNavigation();
   const isReady = Boolean(mealName) && Boolean(selectedImage);
 
@@ -65,7 +65,7 @@ const NewMeal = ({ setPopupComponent }) => {
   };
 
   const handleAddMeal = () => {
-    insertMeal(
+    addMeal(
       {
         name: mealName,
         timestamp: Math.floor(Date.now() / 1000),
@@ -258,7 +258,7 @@ const getDynamicStyles = (scheme: "dark" | "light", isReady: boolean) =>
       marginTop: 15,
     },
     buttonText: {
-      color: scheme === "dark" ?  "#FFF" : "#000",
+      color: scheme === "dark" ? "#FFF" : "#000",
       fontSize: 18,
     },
     mealButtonText: {

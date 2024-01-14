@@ -10,12 +10,12 @@ import * as ImagePicker from "expo-image-picker";
 import CaloriesGoalCard from "../cards/CaloriesGoal";
 import PastMeals from "../cards/PastMeals";
 import AddMeal from "../addmeal/AddMeal";
-import { useMealsDatabase } from "../../shared/MealsStorageContext";
+import useAddMeal from "../../hooks/useAddMeal";
 
 const Summary = ({ navigation }) => {
   const scheme = useColorScheme();
   const [status, requestPermission] = ImagePicker.useCameraPermissions();
-  const { insertMeal } = useMealsDatabase();
+  const addMeal = useAddMeal();
   const [image, setImage] = useState(null);
 
   const dynamicStyles = StyleSheet.create({
@@ -98,7 +98,7 @@ const Summary = ({ navigation }) => {
         <AddMeal
           image={image}
           resized={null}
-          addMealFunction={insertMeal}
+          addMealFunction={addMeal}
           close={() => setImage(null)}
         />
       ) : null}
