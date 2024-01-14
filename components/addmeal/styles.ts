@@ -78,7 +78,7 @@ export const styles = (colorScheme: StylesProps["colorScheme"]) =>
       borderRadius: 10,
       width: "90%",
     },
-   mainButtonText: {
+    mainButtonText: {
       color: "#FFF",
       fontSize: 18,
     },
@@ -91,7 +91,7 @@ export const styles = (colorScheme: StylesProps["colorScheme"]) =>
       marginBottom: 12,
     },
     secondaryButtonText: {
-      color: "#FFF",
+      color: colorScheme === "dark" ? "#FFF" : "#000",
       fontSize: 18,
     },
   });

@@ -37,13 +37,34 @@ const FullLibrary = () => {
                 style={styles.mealImage}
                 imageStyle={styles.imageStyle}
               >
-                <View style={styles.opacityLayer} />
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    borderRadius: 10,
+                    backgroundColor:
+                      scheme === "dark"
+                        ? "rgba(0, 0, 0, 0.5)"
+                        : "rgba(255, 255, 255, 0.5)",
+                  }}
+                />
                 <View style={styles.iconContainer}>
                   <TouchableOpacity onPress={() => removeMeal(meal)}>
-                    <Ionicons name="close-circle" size={30} color="white" />
+                    <Ionicons
+                      name="close-circle"
+                      size={30}
+                      color={scheme === "dark" ? "white" : "black"}
+                    />
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => console.log("add clicked")}>
-                    <Ionicons name="add-circle" size={30} color="white" />
+                    <Ionicons
+                      name="add-circle"
+                      size={30}
+                      color={scheme === "dark" ? "white" : "black"}
+                    />
                   </TouchableOpacity>
                 </View>
                 <View style={styles.titleContainer}>
@@ -98,14 +119,6 @@ const styles = StyleSheet.create({
     right: 0,
     top: 5,
     alignItems: "center",
-  },
-  opacityLayer: {
-    position: "absolute",
-    top: 0,
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   titleContainer: {
     position: "absolute",

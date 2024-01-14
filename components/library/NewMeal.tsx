@@ -258,7 +258,7 @@ const getDynamicStyles = (scheme: "dark" | "light", isReady: boolean) =>
       marginTop: 15,
     },
     buttonText: {
-      color: "#FFF",
+      color: scheme === "dark" ?  "#FFF" : "#000",
       fontSize: 18,
     },
     mealButtonText: {

@@ -92,7 +92,7 @@ const AddMeal = ({ image, resized, addMealFunction, close }) => {
       //   return new Promise((resolve) => setTimeout(resolve, ms));
       // }
       // await delay(3000);
-      loadResponse(responseJson);
+      loadResponse(responseJson as any);
     } catch (error) {
       console.error(error);
     }

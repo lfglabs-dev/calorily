@@ -11,17 +11,17 @@ type IngredientItemProps = {
 
 function getCaloriesColor(scheme, calories) {
   const colorsDark = {
-    low: "#00b894",
-    medium: "#fdcb6e",
-    high: "#fab1a0",
-    veryHigh: "#d63031",
-  };
-
-  const colorsLight = {
     low: "#55efc4",
     medium: "#ffeaa7",
     high: "#e17055",
     veryHigh: "#ff7675",
+  };
+
+  const colorsLight = {
+    low: "#00b894",
+    medium: "#fdcb6e",
+    high: "#fab1a0",
+    veryHigh: "#d63031",
   };
 
   const colors = scheme === "dark" ? colorsDark : colorsLight;

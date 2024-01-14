@@ -73,10 +73,10 @@ const Summary = () => {
         }}
         tabStyle={{
           backgroundColor: scheme === "dark" ? "#1C1C1E" : "#FFF",
-          borderColor: scheme === "dark" ? "#1C1C1E" : "#FFF",
+          borderColor: "#00000000",
         }}
         activeTabStyle={{
-          backgroundColor: scheme === "dark" ? "#137ced" : "#FFF",
+          backgroundColor: scheme === "dark" ? "#137ced" : "#137ced",
         }}
         tabTextStyle={{
           color: scheme === "dark" ? "#DDD" : "#000",
@@ -88,7 +88,9 @@ const Summary = () => {
 
       {selectedIndex === 0 ? <FullLibrary /> : null}
       {selectedIndex === 1 ? <FullLibrary /> : null}
-      {selectedIndex === 2 ? <NewMeal setPopupComponent={setPopupComponent} /> : null}
+      {selectedIndex === 2 ? (
+        <NewMeal setPopupComponent={setPopupComponent} />
+      ) : null}
 
       {popupComponent}
     </SafeAreaView>

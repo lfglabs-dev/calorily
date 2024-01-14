@@ -52,7 +52,7 @@ const Summary = ({ navigation }) => {
       borderRadius: 10,
     },
     secondaryButtonText: {
-      color: scheme === "dark" ? "#FFF" : "#5b5b5c",
+      color: scheme === "dark" ? "#FFF" : "#000",
       fontSize: 18,
     },
   });
