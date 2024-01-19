@@ -8,13 +8,13 @@ import {
 } from "react-native";
 import { styles } from "./styles";
 
-const LoadingMeal = ({ image }) => {
+const LoadingMeal = ({ imageURI }) => {
   const colorScheme = useColorScheme();
 
   return (
     <View style={styles(colorScheme).container}>
       <Image
-        source={{ uri: image.uri }}
+        source={{ uri: imageURI }}
         style={styles(colorScheme).image}
         blurRadius={100}
       />

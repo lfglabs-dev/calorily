@@ -19,7 +19,7 @@ import Bug from "./Bug";
 
 const SNAP_POINTS = ["90%"];
 
-const AddMeal = ({ image, resized, addMealFunction, close }) => {
+const AddMeal = ({ imageURI, resized, addMealFunction, close }) => {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const colorScheme = useColorScheme();
   const [isLoading, setIsLoading] = useState<"loading" | "bug" | "loaded">(
@@ -27,7 +27,7 @@ const AddMeal = ({ image, resized, addMealFunction, close }) => {
   );
   const [name, setName] = useState<string>(null);
   const [ingredients, setIngredients] = useState<ExtendedIngredient[]>([]);
-  const resizedImage = resized ? resized : useResizedImage(image);
+  const resizedImage = resized ? resized : useResizedImage(imageURI);
   const [lastResponse, setLastResponse] = useState<ApiResponse>(null);
   const [dialogVisible, setDialogVisible] = useState(false);
 
@@ -121,7 +121,7 @@ const AddMeal = ({ image, resized, addMealFunction, close }) => {
     >
       <View style={styles(colorScheme).contentContainer}>
         {isLoading === "loading" ? (
-          <LoadingMeal image={image} />
+          <LoadingMeal imageURI={imageURI} />
         ) : isLoading === "bug" ? (
           <Bug openComment={openComment} response={lastResponse?.response} />
         ) : (

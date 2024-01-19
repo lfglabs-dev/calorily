@@ -16,7 +16,7 @@ const Summary = ({ navigation }) => {
   const scheme = useColorScheme();
   const [status, requestPermission] = ImagePicker.useCameraPermissions();
   const addMeal = useAddMeal();
-  const [image, setImage] = useState(null);
+  const [imageURI, setImageURI] = useState<string | undefined>();
 
   const dynamicStyles = StyleSheet.create({
     container: {
@@ -67,7 +67,7 @@ const Summary = ({ navigation }) => {
       });
       if (!imageResult.canceled && imageResult.assets) {
         console.log(imageResult);
-        setImage(imageResult.assets[0]);
+        setImageURI(imageResult.assets[0].uri);
       }
     } else if (status.canAskAgain) {
       await requestPermission();
@@ -94,12 +94,12 @@ const Summary = ({ navigation }) => {
       <TouchableOpacity style={dynamicStyles.mainButton} onPress={pickImage}>
         <Text style={dynamicStyles.mainButtonText}>Quickly Add Meal</Text>
       </TouchableOpacity>
-      {image ? (
+      {imageURI ? (
         <AddMeal
-          image={image}
+          imageURI={imageURI}
           resized={null}
           addMealFunction={addMeal}
-          close={() => setImage(null)}
+          close={() => setImageURI(null)}
         />
       ) : null}
     </View>

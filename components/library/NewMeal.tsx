@@ -19,7 +19,13 @@ import useResizedImage from "../../hooks/useResizedImage";
 import { useNavigation } from "@react-navigation/native";
 import useAddMeal from "../../hooks/useAddMeal";
 
-const NewMeal = ({ setPopupComponent }) => {
+const NewMeal = ({
+  prefilledMeal,
+  setPopupComponent,
+}: {
+  prefilledMeal: MealTemplate | undefined;
+  setPopupComponent: (popup: React.JSX.Element) => void;
+}) => {
   const scheme = useColorScheme();
   const [status, requestPermission] = ImagePicker.useCameraPermissions();
 
@@ -28,12 +34,23 @@ const NewMeal = ({ setPopupComponent }) => {
   const [proteins, setProteins] = useState("");
   const [fats, setFats] = useState("");
   const [totalCalories, setTotalCalories] = useState(0);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const resizedImage = useResizedImage(selectedImage);
+  const [selectedImageURI, setSelectedImageURI] = useState(null);
+  const resizedImage = useResizedImage(selectedImageURI);
 
   const addMeal = useAddMeal();
   const navigation = useNavigation();
-  const isReady = Boolean(mealName) && Boolean(selectedImage);
+  const isReady = Boolean(mealName) && Boolean(selectedImageURI);
+
+  useEffect(() => {
+    if (!prefilledMeal) {
+      return;
+    }
+    setMealName(prefilledMeal.name);
+    setCarbs(prefilledMeal.carbs.toString());
+    setProteins(prefilledMeal.proteins.toString());
+    setFats(prefilledMeal.fats.toString());
+    setSelectedImageURI(prefilledMeal.image_uri);
+  }, [prefilledMeal]);
 
   useEffect(() => {
     const calories = calculateCalories({
@@ -53,7 +70,7 @@ const NewMeal = ({ setPopupComponent }) => {
         quality: 0.075,
       });
       if (!imageResult.canceled && imageResult.assets) {
-        setSelectedImage(imageResult.assets[0]);
+        setSelectedImageURI(imageResult.assets[0].uri);
       }
     } else if (status.canAskAgain) {
       await requestPermission();
@@ -148,24 +165,24 @@ const NewMeal = ({ setPopupComponent }) => {
         <View style={dynamicStyles.imageButtonContainer}>
           <TouchableOpacity
             style={
-              selectedImage
+              selectedImageURI
                 ? dynamicStyles.secondaryButtonSelected
                 : dynamicStyles.fullWidthButton
             }
             onPress={handleChooseImage}
           >
             <Text style={dynamicStyles.buttonText}>
-              {selectedImage ? "Change Image" : "Choose an Image"}
+              {selectedImageURI ? "Change Image" : "Choose an Image"}
             </Text>
           </TouchableOpacity>
-          {selectedImage && (
+          {selectedImageURI && (
             <Image
-              source={{ uri: selectedImage.uri }}
+              source={{ uri: selectedImageURI }}
               style={dynamicStyles.imageThumbnail}
             />
           )}
         </View>
-        {selectedImage && (
+        {selectedImageURI && (
           <TouchableOpacity
             style={[
               dynamicStyles.secondaryButton,
@@ -174,7 +191,7 @@ const NewMeal = ({ setPopupComponent }) => {
             onPress={() => {
               setPopupComponent(
                 <AddMeal
-                  image={selectedImage}
+                  imageURI={selectedImageURI}
                   resized={resizedImage}
                   addMealFunction={(meal, imageUri) => {
                     setMealName(meal.name);

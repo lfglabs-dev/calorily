@@ -12,7 +12,11 @@ import {
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
 
-const FullLibrary = () => {
+const FullLibrary = ({
+  handlePrefillMeal,
+}: {
+  handlePrefillMeal: (meal: MealTemplate | undefined) => void;
+}) => {
   const scheme = useColorScheme();
   const { fetchMealsInRangeAsync, deleteMealById } = useMealsDatabase();
   const [meals, setMeals] = useState<Array<MealEntry>>([]);
@@ -59,7 +63,18 @@ const FullLibrary = () => {
                       color={scheme === "dark" ? "white" : "black"}
                     />
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={() => console.log("add clicked")}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      handlePrefillMeal({
+                        name: meal.name,
+                        carbs: meal.carbs,
+                        fats: meal.fats,
+                        proteins: meal.proteins,
+                        image_uri: meal.image_uri,
+                      });
+                      console.log("add clicked", meal);
+                    }}
+                  >
                     <Ionicons
                       name="add-circle"
                       size={30}

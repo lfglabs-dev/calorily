@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import * as ImageManipulator from "expo-image-manipulator";
 import { ImagePickerAsset } from "expo-image-picker";
 
-const useResizedImage = (image) => {
+const useResizedImage = (imageURI) => {
   const [resizedImage, setResizedImage] =
     useState<ImageManipulator.ImageResult | null>(null);
 
-  const resizeAndConvertToBase64 = async (asset: ImagePickerAsset) => {
+  const resizeAndConvertToBase64 = async (uri : string) => {
     try {
       const resizedImage = await ImageManipulator.manipulateAsync(
-        asset.uri,
+        uri,
         [{ resize: { width: 896 } }],
         { compress: 1, format: ImageManipulator.SaveFormat.JPEG, base64: true }
       );
@@ -20,10 +20,10 @@ const useResizedImage = (image) => {
   };
 
   useEffect(() => {
-    if (image) {
-      resizeAndConvertToBase64(image).then(setResizedImage);
+    if (imageURI) {
+      resizeAndConvertToBase64(imageURI).then(setResizedImage);
     }
-  }, [image]);
+  }, [imageURI]);
 
   return resizedImage;
 };

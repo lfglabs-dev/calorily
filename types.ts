@@ -15,6 +15,11 @@ type Meal = Macro & {
   favorite: boolean;
 };
 
+type MealTemplate = Macro & {
+  name: string;
+  image_uri: string;
+};
+
 type MealEntry = Meal & { id: number; image_uri: string };
 
 type ApiResponse = {

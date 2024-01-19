@@ -48,8 +48,17 @@ const Summary = () => {
     },
   });
 
+  const [prefilledMeal, setPrefilledMeal] = useState<
+    MealTemplate | undefined
+  >();
+
   const handleBackPress = () => {
     navigation.goBack();
+  };
+
+  const handlePrefillMeal = (meal: MealTemplate) => {
+    setSelectedIndex(2);
+    setPrefilledMeal(meal);
   };
 
   return (
@@ -86,10 +95,17 @@ const Summary = () => {
         }}
       />
 
-      {selectedIndex === 0 ? <FullLibrary /> : null}
-      {selectedIndex === 1 ? <FullLibrary /> : null}
+      {selectedIndex === 0 ? (
+        <FullLibrary handlePrefillMeal={handlePrefillMeal} />
+      ) : null}
+      {selectedIndex === 1 ? (
+        <FullLibrary handlePrefillMeal={handlePrefillMeal} />
+      ) : null}
       {selectedIndex === 2 ? (
-        <NewMeal setPopupComponent={setPopupComponent} />
+        <NewMeal
+          prefilledMeal={prefilledMeal}
+          setPopupComponent={setPopupComponent}
+        />
       ) : null}
 
       {popupComponent}
