@@ -61,12 +61,6 @@ const Settings = () => {
   };
 
   useEffect(() => {
-    if (!editing) {
-      saveSettings();
-    }
-  }, [editing]);
-
-  useEffect(() => {
     if (shouldSave) {
       saveSettings().then(() => {
         setShouldSave(false);
@@ -143,7 +137,14 @@ const Settings = () => {
     <SafeAreaView style={dynamicStyles.safeArea}>
       <View style={dynamicStyles.header}>
         <Text style={dynamicStyles.headerTitle}>Settings</Text>
-        <TouchableOpacity onPress={() => setEditing(!editing)}>
+        <TouchableOpacity
+          onPress={() => {
+            if (editing) {
+              saveSettings();
+            }
+            setEditing(!editing);
+          }}
+        >
           <Text style={dynamicStyles.editButton}>
             {editing ? "Done" : "Edit"}
           </Text>
