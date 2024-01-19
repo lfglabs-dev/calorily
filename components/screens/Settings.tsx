@@ -61,7 +61,7 @@ const Settings = () => {
   };
 
   useEffect(() => {
-    if (editing) {
+    if (!editing) {
       saveSettings();
     }
   }, [editing]);
