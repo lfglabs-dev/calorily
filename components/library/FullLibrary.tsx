@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  StyleSheet,
-  useColorScheme,
-  SafeAreaView,
-  Text,
+  TouchableOpacity,
   View,
+  Text,
+  SafeAreaView,
+  StyleSheet,
   ScrollView,
   ImageBackground,
-  TouchableOpacity,
+  Animated,
+  useColorScheme,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
@@ -20,6 +21,7 @@ const FullLibrary = ({
   const scheme = useColorScheme();
   const { fetchMealsInRangeAsync, deleteMealById } = useMealsDatabase();
   const [meals, setMeals] = useState<Array<MealEntry>>([]);
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     fetchMealsInRangeAsync(0, 100).then(setMeals);
@@ -30,12 +32,38 @@ const FullLibrary = ({
     deleteMealById(meal.id);
   };
 
+  const onPressOut = () => {
+    Animated.timing(opacity, {
+      toValue: 0,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const onLongPress = () => {
+    console.log("favorite");
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start(() => {
+      setTimeout(onPressOut, 500);
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.grid}>
         {meals.map((meal) => (
           <View key={meal.id} style={styles.mealContainer}>
-            <TouchableOpacity onPress={() => console.log("favorite")}>
+            <Animated.View style={[styles.centerIcon, { opacity }]}>
+              <Ionicons
+                name="heart"
+                size={48}
+                color={scheme === "dark" ? "white" : "black"}
+              />
+            </Animated.View>
+            <TouchableOpacity onLongPress={onLongPress} onPressOut={onPressOut}>
               <ImageBackground
                 source={{ uri: meal.image_uri }}
                 style={styles.mealImage}
@@ -132,7 +160,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    top: 5,
+    top: 50,
     alignItems: "center",
   },
   titleContainer: {
