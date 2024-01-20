@@ -106,8 +106,16 @@ const updateMealByIdAsync = async (id: number, meal: Meal): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        "UPDATE meals SET name = ?, carbs = ?, proteins = ?, fats = ?, timestamp = ? WHERE id = ?;",
-        [meal.name, meal.carbs, meal.proteins, meal.fats, meal.timestamp, id],
+        "UPDATE meals SET name = ?, carbs = ?, proteins = ?, fats = ?, timestamp = ?, favorite = ? WHERE id = ?;",
+        [
+          meal.name,
+          meal.carbs,
+          meal.proteins,
+          meal.fats,
+          meal.timestamp,
+          meal.favorite ? 1 : 0,
+          id,
+        ],
         () => {
           resolve();
         },
@@ -180,11 +188,17 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
       .catch(console.error);
   }, []);
 
-  const refreshMeals = async () => {
+  useEffect(() => {
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
     const timestampToday = Math.floor(startOfToday.getTime() / 1000);
+    const mealsForToday = weeklyMeals.filter(
+      (meal) => meal.timestamp >= timestampToday
+    );
+    setDailyMeals(mealsForToday);
+  }, [weeklyMeals]);
 
+  const refreshMeals = async () => {
     const startOfWeek = new Date();
     startOfWeek.setDate(
       startOfWeek.getDate() -
@@ -196,11 +210,6 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
 
     const mealsSinceWeek = await fetchMealsSinceTimestamp(timestampWeek);
 
-    const mealsForToday = mealsSinceWeek.filter(
-      (meal) => meal.timestamp >= timestampToday
-    );
-
-    setDailyMeals(mealsForToday);
     setWeeklyMeals(mealsSinceWeek);
   };
 
@@ -216,6 +225,15 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
 
   const updateMealById = async (id: number, meal: Meal) => {
     await updateMealByIdAsync(id, meal);
+    const newDailyMeals = [];
+    for (const oldMeal of weeklyMeals) {
+      if (oldMeal.id === id) {
+        newDailyMeals.push({ ...meal, id });
+      } else {
+        newDailyMeals.push(oldMeal);
+      }
+    }
+    setWeeklyMeals(weeklyMeals);
     await refreshMeals();
   };
 
