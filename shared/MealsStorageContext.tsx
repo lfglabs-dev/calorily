@@ -158,7 +158,10 @@ type MealsDatabaseContextProps = {
   ) => Promise<MealEntry[]>;
   insertMeal: (meal: Meal, tmpImageUri: string) => Promise<void>;
   deleteMealById: (id: number) => Promise<void>;
-  updateMealById: (id: number, meal: Meal) => Promise<void>;
+  updateMealById: (
+    id: number,
+    meal: Meal
+  ) => (meals: MealEntry[]) => MealEntry[];
   refreshMeals: () => Promise<void>;
 };
 
@@ -168,7 +171,9 @@ const MealsDatabaseContext = createContext<MealsDatabaseContextProps>({
   fetchMealsInRangeAsync: async (startIndex: number, count: number) => [],
   insertMeal: async () => {},
   deleteMealById: async () => {},
-  updateMealById: async () => {},
+  updateMealById: () => {
+    return (meals: MealEntry[]) => meals;
+  },
   refreshMeals: async () => {},
 });
 
@@ -223,18 +228,25 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     await refreshMeals();
   };
 
-  const updateMealById = async (id: number, meal: Meal) => {
-    await updateMealByIdAsync(id, meal);
-    const newDailyMeals = [];
-    for (const oldMeal of weeklyMeals) {
-      if (oldMeal.id === id) {
-        newDailyMeals.push({ ...meal, id });
-      } else {
-        newDailyMeals.push(oldMeal);
+  const updateMealById = (id: number, meal: Meal) => {
+    const toUpdated = (meals: MealEntry[]) => {
+      const newMeals: MealEntry[] = [];
+      for (const oldMeal of meals) {
+        if (oldMeal.id === id) {
+          newMeals.push({
+            ...meal,
+            image_uri: oldMeal.image_uri,
+            id: oldMeal.id,
+          });
+        } else {
+          newMeals.push(oldMeal);
+        }
       }
-    }
-    setWeeklyMeals(weeklyMeals);
-    await refreshMeals();
+      return newMeals;
+    };
+    updateMealByIdAsync(id, meal);
+    setWeeklyMeals(toUpdated(weeklyMeals));
+    return toUpdated;
   };
 
   return (

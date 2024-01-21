@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { Dispatch, SetStateAction, useRef } from "react";
 import {
   TouchableOpacity,
   View,
@@ -13,45 +13,49 @@ import { useMealsDatabase } from "../../shared/MealsStorageContext";
 
 const MealItem = ({
   meal,
+  setMeals,
   removeMeal,
   handlePrefillMeal,
 }: {
   meal: MealEntry;
+  setMeals: Dispatch<SetStateAction<MealEntry[]>>;
   removeMeal: (meal: MealEntry) => void;
   handlePrefillMeal: (meal: MealTemplate | undefined) => void;
 }) => {
   const scheme = useColorScheme();
   const { updateMealById } = useMealsDatabase();
-  const opacity = useRef(new Animated.Value(meal.favorite ? 1 : 0)).current;
-
-  console.log("meal", meal.name, meal.favorite);
+  const opacity = meal.favorite ? 1 : 0;
 
   const onPressOut = () => {
-    Animated.timing(opacity, {
-      toValue: meal.favorite ? 0 : 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
+    // Animated.timing(opacity, {
+    //   toValue: meal.favorite ? 0 : 1,
+    //   duration: 500,
+    //   useNativeDriver: true,
+    // }).start();
   };
 
   // add to favorite
   const onLongPress = (meal: MealEntry) => {
-    console.log("meal:", meal, meal.favorite);
     if (meal.favorite) {
-      console.log("removed to favorite");
+      console.log("removed from favorite");
     } else {
       console.log("added to favorite");
     }
 
-    Animated.timing(opacity, {
-      toValue: meal.favorite ? 1 : 0,
-      duration: 500,
-      useNativeDriver: true,
-    }).start(() => {
-      setTimeout(onPressOut, 500);
-    });
+    // Animated.timing(opacity, {
+    //   toValue: meal.favorite ? 1 : 0,
+    //   duration: 500,
+    //   useNativeDriver: true,
+    // }).start(() => {
+    //   setTimeout(onPressOut, 500);
+    // });
     // we change its favorite
-    updateMealById(meal.id, { ...meal, favorite: !meal.favorite });
+    const refresh: any = updateMealById(meal.id, {
+      ...meal,
+      favorite: meal.favorite === 1 ? 0 : 1,
+    });
+
+    setMeals(refresh);
   };
 
   // JSX for rendering a single meal
@@ -119,9 +123,7 @@ const MealItem = ({
           </View>
         </ImageBackground>
       </TouchableOpacity>
-      <Animated.View
-        style={[styles.centerIcon, { opacity: meal.favorite ? 1 : opacity }]}
-      >
+      <Animated.View style={[styles.centerIcon, { opacity }]}>
         <Ionicons
           name="heart"
           size={48}

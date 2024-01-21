@@ -38,6 +38,7 @@ const FullLibrary = ({
         {meals.map((meal) => (
           <MealItem
             meal={meal}
+            setMeals={setMeals}
             removeMeal={removeMeal}
             handlePrefillMeal={handlePrefillMeal}
           />

@@ -12,7 +12,7 @@ type Ingredient = Macro & {
 type Meal = Macro & {
   name: string;
   timestamp: number;
-  favorite: boolean;
+  favorite: number;
 };
 
 type MealTemplate = Macro & {
