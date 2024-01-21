@@ -1,4 +1,10 @@
-import React, { Dispatch, SetStateAction, useRef } from "react";
+import React, {
+  Dispatch,
+  SetStateAction,
+  useRef,
+  useState,
+  useEffect,
+} from "react";
 import {
   TouchableOpacity,
   View,
@@ -24,113 +30,98 @@ const MealItem = ({
 }) => {
   const scheme = useColorScheme();
   const { updateMealById } = useMealsDatabase();
-  const opacity = meal.favorite ? 1 : 0;
+  const animatedOpacity = useRef(
+    new Animated.Value(meal.favorite ? 1 : 0)
+  ).current;
 
-  const onPressOut = () => {
-    // Animated.timing(opacity, {
-    //   toValue: meal.favorite ? 0 : 1,
-    //   duration: 500,
-    //   useNativeDriver: true,
-    // }).start();
-  };
+  useEffect(() => {
+    Animated.timing(animatedOpacity, {
+      toValue: meal.favorite ? 1 : 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  }, [meal.favorite]);
 
-  // add to favorite
-  const onLongPress = (meal: MealEntry) => {
-    if (meal.favorite) {
-      console.log("removed from favorite");
-    } else {
-      console.log("added to favorite");
-    }
-
-    // Animated.timing(opacity, {
-    //   toValue: meal.favorite ? 1 : 0,
-    //   duration: 500,
-    //   useNativeDriver: true,
-    // }).start(() => {
-    //   setTimeout(onPressOut, 500);
-    // });
-    // we change its favorite
-    const refresh: any = updateMealById(meal.id, {
+  const onLongPress = () => {
+    const updatedMeal = {
       ...meal,
       favorite: meal.favorite === 1 ? 0 : 1,
-    });
-
+    };
+    const refresh = updateMealById(meal.id, updatedMeal);
     setMeals(refresh);
   };
 
   // JSX for rendering a single meal
   return (
-    <View key={meal.id} style={styles.mealContainer}>
-      <TouchableOpacity
-        onLongPress={() => onLongPress(meal)}
-        onPressOut={onPressOut}
+    <TouchableOpacity
+      style={styles.mealContainer}
+      onLongPress={onLongPress}
+      activeOpacity={0.8}
+    >
+      <ImageBackground
+        source={{ uri: meal.image_uri }}
+        style={styles.mealImage}
+        imageStyle={styles.imageStyle}
       >
-        <ImageBackground
-          source={{ uri: meal.image_uri }}
-          style={styles.mealImage}
-          imageStyle={styles.imageStyle}
-        >
-          <View
-            style={{
-              position: "absolute",
-              top: 0,
-              bottom: 0,
-              left: 0,
-              right: 0,
-              borderRadius: 10,
-              backgroundColor:
-                scheme === "dark"
-                  ? "rgba(0, 0, 0, 0.5)"
-                  : "rgba(255, 255, 255, 0.5)",
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            borderRadius: 10,
+            backgroundColor:
+              scheme === "dark"
+                ? "rgba(0, 0, 0, 0.5)"
+                : "rgba(255, 255, 255, 0.5)",
+          }}
+        />
+        <View style={styles.iconContainer}>
+          <TouchableOpacity onPress={() => removeMeal(meal)}>
+            <Ionicons
+              name="close-circle"
+              size={30}
+              color={scheme === "dark" ? "white" : "black"}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => {
+              handlePrefillMeal({
+                name: meal.name,
+                carbs: meal.carbs,
+                fats: meal.fats,
+                proteins: meal.proteins,
+                image_uri: meal.image_uri,
+              });
             }}
-          />
-          <View style={styles.iconContainer}>
-            <TouchableOpacity onPress={() => removeMeal(meal)}>
-              <Ionicons
-                name="close-circle"
-                size={30}
-                color={scheme === "dark" ? "white" : "black"}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                handlePrefillMeal({
-                  name: meal.name,
-                  carbs: meal.carbs,
-                  fats: meal.fats,
-                  proteins: meal.proteins,
-                  image_uri: meal.image_uri,
-                });
-                console.log("add clicked", meal);
-              }}
-            >
-              <Ionicons
-                name="add-circle"
-                size={30}
-                color={scheme === "dark" ? "white" : "black"}
-              />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.titleContainer}>
-            <Text
-              style={[
-                styles.mealName,
-                { color: scheme === "dark" ? "#fff" : "#000" },
-              ]}
-            >
-              {meal.name}
-            </Text>
-          </View>
-        </ImageBackground>
-      </TouchableOpacity>
-      <Animated.View style={[styles.centerIcon, { opacity }]}>
+          >
+            <Ionicons
+              name="add-circle"
+              size={30}
+              color={scheme === "dark" ? "white" : "black"}
+            />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.titleContainer}>
+          <Text
+            style={[
+              styles.mealName,
+              { color: scheme === "dark" ? "#fff" : "#000" },
+            ]}
+          >
+            {meal.name}
+          </Text>
+        </View>
+      </ImageBackground>
+      <Animated.View style={[styles.centerIcon, { opacity: animatedOpacity }]}>
         <Ionicons
           name="heart"
           size={48}
           color={scheme === "dark" ? "white" : "black"}
         />
       </Animated.View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
