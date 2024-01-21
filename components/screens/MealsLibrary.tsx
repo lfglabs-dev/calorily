@@ -12,6 +12,7 @@ import FullLibrary from "../library/FullLibrary";
 import SegmentedControlTab from "react-native-segmented-control-tab";
 import { useNavigation } from "@react-navigation/native";
 import NewMeal from "../library/NewMeal";
+import FavoriteLirary from "../library/FavoriteLibrary";
 
 const Summary = () => {
   const scheme = useColorScheme();
@@ -99,7 +100,7 @@ const Summary = () => {
         <FullLibrary handlePrefillMeal={handlePrefillMeal} />
       ) : null}
       {selectedIndex === 1 ? (
-        <FullLibrary handlePrefillMeal={handlePrefillMeal} />
+        <FavoriteLirary handlePrefillMeal={handlePrefillMeal} />
       ) : null}
       {selectedIndex === 2 ? (
         <NewMeal

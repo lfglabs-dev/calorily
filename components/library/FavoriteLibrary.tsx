@@ -3,7 +3,7 @@ import { SafeAreaView, StyleSheet, ScrollView } from "react-native";
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import MealItem from "./MealItem";
 
-const FullLibrary = ({
+const FavoriteLirary = ({
   handlePrefillMeal,
 }: {
   handlePrefillMeal: (meal: MealTemplate | undefined) => void;
@@ -23,14 +23,16 @@ const FullLibrary = ({
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.grid}>
-        {meals.map((meal) => (
-          <MealItem
-            meal={meal}
-            setMeals={setMeals}
-            removeMeal={removeMeal}
-            handlePrefillMeal={handlePrefillMeal}
-          />
-        ))}
+        {meals
+          .filter((meal) => meal.favorite)
+          .map((meal) => (
+            <MealItem
+              meal={meal}
+              setMeals={setMeals}
+              removeMeal={removeMeal}
+              handlePrefillMeal={handlePrefillMeal}
+            />
+          ))}
       </ScrollView>
     </SafeAreaView>
   );
@@ -83,4 +85,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FullLibrary;
+export default FavoriteLirary;
