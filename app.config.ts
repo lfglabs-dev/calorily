@@ -15,7 +15,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   assetBundlePatterns: ["**/*"],
   ios: {
-    bundleIdentifier: 'io.th0rgal.calorily',
+    bundleIdentifier: "com.calorily.app",
     supportsTablet: true,
   },
   android: {
@@ -39,7 +39,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ],
   extra: {
     eas: {
-      projectId: "35a0cfd6-4e2e-4759-ac9c-fe898822090b",
+      projectId: "b4b736d7-5526-4e75-a92c-db0622f97f39",
     },
   },
 });
