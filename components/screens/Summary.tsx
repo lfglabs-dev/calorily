@@ -73,7 +73,7 @@ const Summary = ({ navigation }) => {
       await requestPermission();
     } else {
       alert(
-        "DietGPT needs your permission to use your camera. You can allow it in your iOS settings."
+        "Calorily needs your permission to use your camera. You can allow it in your iOS settings."
       );
     }
   };

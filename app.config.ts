@@ -2,8 +2,8 @@ import { ExpoConfig, ConfigContext } from "@expo/config";
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "DietGPT",
-  slug: "dietgpt",
+  name: "Calorily",
+  slug: "calorily",
   version: "1.1.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
@@ -15,7 +15,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   assetBundlePatterns: ["**/*"],
   ios: {
-    bundleIdentifier: 'io.th0rgal.dietgpt',
+    bundleIdentifier: 'io.th0rgal.calorily',
     supportsTablet: true,
   },
   android: {

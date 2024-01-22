@@ -56,7 +56,7 @@ const AddMeal = ({ imageURI, resized, addMealFunction, close }) => {
     setIsLoading("loading");
     (async () => {
       const response = await fetch(
-        "https://api.dietgpt.gouv.media/improve_food_data",
+        "https://api.calorily.com/improve_food_data",
         {
           method: "POST",
           headers: {
@@ -78,7 +78,7 @@ const AddMeal = ({ imageURI, resized, addMealFunction, close }) => {
   const fetchIngredients = async (b64Image: string) => {
     setIsLoading("loading");
     try {
-      const response = await fetch("https://api.dietgpt.gouv.media/food_data", {
+      const response = await fetch("https://api.calorily.com/food_data", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
