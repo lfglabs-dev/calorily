@@ -1,8 +1,10 @@
 import { ExpoConfig, ConfigContext } from "@expo/config";
 
+const IS_DEV = process.env.APP_VARIANT === "development";
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: "Calorily",
+  name: IS_DEV ? "Calorily Debug" : "Calorily",
   slug: "calorily",
   version: "1.2.0",
   orientation: "portrait",
@@ -15,10 +17,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   assetBundlePatterns: ["**/*"],
   ios: {
-    bundleIdentifier: "com.calorily.app",
+    bundleIdentifier: IS_DEV ? "com.calorily.app.dev" : "com.calorily.app",
     supportsTablet: true,
   },
   android: {
+    package: IS_DEV ? "com.calorily.app.dev" : "com.calorily.app",
     adaptiveIcon: {
       foregroundImage: "./assets/adaptive-icon.png",
       backgroundColor: "#ffffff",

@@ -123,7 +123,7 @@ const AddMeal = ({ imageURI, resized, addMealFunction, close }) => {
         {isLoading === "loading" ? (
           <LoadingMeal imageURI={imageURI} />
         ) : isLoading === "bug" ? (
-          <Bug openComment={openComment} response={lastResponse?.response} />
+          <Bug openComment={openComment} onClose={close} response={lastResponse?.response} />
         ) : (
           <>
             {/* Result showcase */}

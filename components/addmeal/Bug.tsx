@@ -11,9 +11,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 const Bug = ({
   openComment,
+  onClose,
   response,
 }: {
   openComment: () => void;
+  onClose: () => void;
   response: string | undefined;
 }) => {
   const scheme = useColorScheme();
@@ -89,7 +91,10 @@ const Bug = ({
           <Text style={styles.buttonText}>Retry with a comment</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.button, styles.mainButton]}>
+        <TouchableOpacity
+          style={[styles.button, styles.mainButton]}
+          onPress={onClose}
+        >
           <Text style={styles.buttonText}>Close</Text>
         </TouchableOpacity>
       </View>
