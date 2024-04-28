@@ -15,8 +15,8 @@ type ApplicationSettings = {
     targetCaloricSurplus: number;
     targetMinimumWeight: number;
     targetMaximumWeight: number;
-    openAiKey: string;
   };
+  subscribed: boolean;
 };
 
 type ApplicationSettingsContextType = {
@@ -31,8 +31,8 @@ const defaultSettings: ApplicationSettings = {
     targetCaloricSurplus: 250,
     targetMinimumWeight: 65,
     targetMaximumWeight: 68,
-    openAiKey: null,
   },
+  subscribed: false,
 };
 
 const defaultContext: ApplicationSettingsContextType = {

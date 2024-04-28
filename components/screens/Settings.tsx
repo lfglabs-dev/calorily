@@ -22,7 +22,6 @@ const Settings = () => {
   const [targetCaloricSurplus, setTargetCaloricSurplus] = useState("");
   const [targetMinimumWeight, setTargetMinimumWeight] = useState("");
   const [targetMaximumWeight, setTargetMaximumWeight] = useState("");
-  const [openAiKey, setOpenAiKey] = useState("");
   const { estimateBMR } = useHealthData();
   const scheme = useColorScheme();
 
@@ -43,7 +42,6 @@ const Settings = () => {
       setTargetMaximumWeight(
         settings.metabolicData.targetMaximumWeight.toString()
       );
-      setOpenAiKey(settings.metabolicData.openAiKey);
     }
   }, [settings]);
 
@@ -55,8 +53,8 @@ const Settings = () => {
         targetCaloricSurplus: parseInt(targetCaloricSurplus, 10),
         targetMinimumWeight: parseInt(targetMinimumWeight, 10),
         targetMaximumWeight: parseInt(targetMaximumWeight, 10),
-        openAiKey,
       },
+      subscribed: settings.subscribed,
     });
   };
 
@@ -255,7 +253,7 @@ const Settings = () => {
 
       <Text style={dynamicStyles.sectionTitle}>Application</Text>
       <View style={dynamicStyles.section}>
-        <View style={[dynamicStyles.settingRow, dynamicStyles.lastSettingRow]}>
+        {/* <View style={[dynamicStyles.settingRow, dynamicStyles.lastSettingRow]}>
           <Text style={dynamicStyles.settingLabel}>OpenAI key</Text>
           {editing ? (
             <TextInput
@@ -269,7 +267,7 @@ const Settings = () => {
               {openAiKey ? openAiKey : "not set"}
             </Text>
           )}
-        </View>
+        </View> */}
       </View>
     </SafeAreaView>
   );
