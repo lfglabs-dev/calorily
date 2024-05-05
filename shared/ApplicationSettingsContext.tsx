@@ -16,7 +16,7 @@ type ApplicationSettings = {
     targetMinimumWeight: number;
     targetMaximumWeight: number;
   };
-  subscribed: boolean;
+  //subscribed: boolean;
 };
 
 type ApplicationSettingsContextType = {
@@ -26,13 +26,13 @@ type ApplicationSettingsContextType = {
 
 const defaultSettings: ApplicationSettings = {
   metabolicData: {
-    basalMetabolicRate: 2500,
+    basalMetabolicRate: 1800,
     targetCaloricDeficit: 250,
     targetCaloricSurplus: 250,
     targetMinimumWeight: 65,
     targetMaximumWeight: 68,
   },
-  subscribed: false,
+  //subscribed: false,
 };
 
 const defaultContext: ApplicationSettingsContextType = {

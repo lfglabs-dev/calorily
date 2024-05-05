@@ -54,7 +54,7 @@ const Settings = () => {
         targetMinimumWeight: parseInt(targetMinimumWeight, 10),
         targetMaximumWeight: parseInt(targetMaximumWeight, 10),
       },
-      subscribed: settings.subscribed,
+      // subscribed: settings.subscribed,
     });
   };
 
@@ -251,7 +251,7 @@ const Settings = () => {
         </View>
       </View>
 
-      <Text style={dynamicStyles.sectionTitle}>Application</Text>
+      <Text style={dynamicStyles.sectionTitle}>Subscription</Text>
       <View style={dynamicStyles.section}>
         {/* <View style={[dynamicStyles.settingRow, dynamicStyles.lastSettingRow]}>
           <Text style={dynamicStyles.settingLabel}>OpenAI key</Text>

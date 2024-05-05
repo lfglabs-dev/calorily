@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,15 +6,14 @@ import {
   StyleSheet,
   useColorScheme,
 } from "react-native";
-import { PurchasesPackage } from "react-native-purchases";
-import { useApplicationSettings } from "../../shared/ApplicationSettingsContext";
+import Purchases, { PurchasesPackage } from "react-native-purchases";
 
 interface PaywallProps {
   onSubscribe: (option: PurchasesPackage) => Promise<void>;
 }
 
 const Paywall: React.FC<PaywallProps> = ({ onSubscribe }) => {
-  const { settings, updateSettings } = useApplicationSettings();
+  const [offerings, setOfferings] = useState<PurchasesPackage[] | null>(null);
 
   const scheme = useColorScheme();
   const styles = StyleSheet.create({
@@ -59,32 +58,59 @@ const Paywall: React.FC<PaywallProps> = ({ onSubscribe }) => {
     },
   });
 
+  useEffect(() => {
+    const fetchOfferings = async () => {
+      try {
+        const offerings = await Purchases.getOfferings();
+        setOfferings(offerings.current.availablePackages);
+      } catch (error) {
+        console.error("Error fetching offerings:", error);
+      }
+    };
+    fetchOfferings();
+  }, []);
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Subscribe to Access Features</Text>
+      <Text style={styles.title}>Chose your plan</Text>
       <Text style={styles.description}>
-        You can't improve what you can't track. Calorily makes tracking your
-        calories easy. It's not cheap but your time is valuable.
+        It's not cheap but your time and health are worth much more
       </Text>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => {
-          updateSettings({
-            ...settings,
-            subscribed: true,
-          });
-        }}
-      >
-        <Text style={styles.buttonText}>$20/month with One Free Week</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.button, styles.buttonDisabled]}
-        disabled={true}
-      >
-        <Text style={[styles.buttonText, styles.buttonTextDisabled]}>
-          $100 for Lifetime (Unavailable)
-        </Text>
-      </TouchableOpacity>
+
+      {offerings &&
+        offerings.map((pkg, index) => {
+          const { priceString, subscriptionPeriod } = pkg.product;
+          let period = priceString;
+          if (subscriptionPeriod) {
+            const periodMap: { [key: string]: string } = {
+              D: "day",
+              W: "week",
+              M: "month",
+              Y: "year",
+            };
+            const regex = /(\d+)([DWMY])/;
+            const match = subscriptionPeriod.match(regex);
+            if (match) {
+              const numberOfUnits = parseInt(match[1]);
+              const unit = periodMap[match[2]] || match[2];
+              period =
+                numberOfUnits > 1
+                  ? `${priceString} per ${numberOfUnits} ${unit}${numberOfUnits}`
+                  : `${priceString} per ${unit}`;
+            }
+          } else {
+            period = `${priceString} for life`;
+          }
+          return (
+            <TouchableOpacity
+              key={index}
+              style={styles.button}
+              onPress={() => onSubscribe(pkg)}
+            >
+              <Text style={styles.buttonText}>{period}</Text>
+            </TouchableOpacity>
+          );
+        })}
     </View>
   );
 };
