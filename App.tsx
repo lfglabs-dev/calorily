@@ -55,9 +55,12 @@ export default function App() {
       const getPackages = async () => {
         try {
           const info = await Purchases.getCustomerInfo();
+          const offerings = await Purchases.getOfferings();
+          // if subscribed or if no subscriptions available
           if (
-            info.entitlements.active !== undefined &&
-            Object.keys(info.entitlements.active).length > 0
+            !Boolean(offerings?.current?.availablePackages) ||
+            (info.entitlements.active !== undefined &&
+              Object.keys(info.entitlements.active).length > 0)
           ) {
             setIsSubscribed(true);
           }
