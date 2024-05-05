@@ -11,6 +11,10 @@ import {
 import { useApplicationSettings } from "../../shared/ApplicationSettingsContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useHealthData } from "../../shared/HealthDataContext";
+import Purchases, {
+  CustomerInfo,
+  PurchasesOfferings,
+} from "react-native-purchases";
 
 const Settings = () => {
   const { settings, updateSettings } = useApplicationSettings();
@@ -22,6 +26,9 @@ const Settings = () => {
   const [targetCaloricSurplus, setTargetCaloricSurplus] = useState("");
   const [targetMinimumWeight, setTargetMinimumWeight] = useState("");
   const [targetMaximumWeight, setTargetMaximumWeight] = useState("");
+  const [customerInfo, setCustomerInfo] = useState<CustomerInfo>();
+  const [offerings, setOfferings] = useState<PurchasesOfferings>();
+
   const { estimateBMR } = useHealthData();
   const scheme = useColorScheme();
 
@@ -44,6 +51,14 @@ const Settings = () => {
       );
     }
   }, [settings]);
+
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      setCustomerInfo(await Purchases.getCustomerInfo());
+      setOfferings(await Purchases.getOfferings());
+    };
+    fetchSubscription();
+  }, []);
 
   const saveSettings = async () => {
     await updateSettings({
@@ -253,21 +268,35 @@ const Settings = () => {
 
       <Text style={dynamicStyles.sectionTitle}>Subscription</Text>
       <View style={dynamicStyles.section}>
-        {/* <View style={[dynamicStyles.settingRow, dynamicStyles.lastSettingRow]}>
-          <Text style={dynamicStyles.settingLabel}>OpenAI key</Text>
-          {editing ? (
-            <TextInput
-              style={[dynamicStyles.settingValue, dynamicStyles.input]}
-              onChangeText={setOpenAiKey}
-              value={openAiKey}
-              keyboardType="numeric"
-            />
-          ) : (
-            <Text style={dynamicStyles.settingValue}>
-              {openAiKey ? openAiKey : "not set"}
-            </Text>
-          )}
-        </View> */}
+        {customerInfo?.activeSubscriptions.map((subscriptionId, index) => {
+          const subscriptionPackage =
+            offerings?.all.default.availablePackages.find(
+              (pkg) => pkg.product.identifier === subscriptionId
+            );
+          const subscriptionName = subscriptionPackage
+            ? subscriptionPackage.product.title
+            : "Unknown Offer";
+          const expirationDate =
+            customerInfo?.allExpirationDates[subscriptionId];
+          const daysLeft = expirationDate
+            ? Math.ceil(
+                (new Date(expirationDate).valueOf() - Date.now().valueOf()) /
+                  (1000 * 60 * 60 * 24)
+              )
+            : "∞";
+
+          return (
+            <View
+              style={[dynamicStyles.settingRow, dynamicStyles.lastSettingRow]}
+              key={index}
+            >
+              <Text style={dynamicStyles.settingLabel}>{subscriptionName}</Text>
+              <Text style={dynamicStyles.settingValue}>
+                {daysLeft} day{daysLeft !== 1 ? "s" : ""} left
+              </Text>
+            </View>
+          );
+        })}
       </View>
     </SafeAreaView>
   );
