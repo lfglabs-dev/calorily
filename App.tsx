@@ -36,7 +36,7 @@ function SummaryStackScreen() {
 export default function App() {
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? DarkTheme : DefaultTheme;
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState<boolean>();
 
   // Configure Purchases
   useEffect(() => {
@@ -56,14 +56,12 @@ export default function App() {
         try {
           const info = await Purchases.getCustomerInfo();
           const offerings = await Purchases.getOfferings();
-          // if subscribed or if no subscriptions available
-          if (
+          // set to false if some packages are available and users has no entitlements
+          setIsSubscribed(
             !Boolean(offerings?.current?.availablePackages) ||
-            (info.entitlements.active !== undefined &&
-              Object.keys(info.entitlements.active).length > 0)
-          ) {
-            setIsSubscribed(true);
-          }
+              (info.entitlements.active !== undefined &&
+                Object.keys(info.entitlements.active).length > 0)
+          );
         } catch (error) {
           console.error("Error fetching offerings:", error);
           setIsSubscribed(true);
@@ -89,7 +87,9 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       {!isSubscribed ? (
-        <Paywall onSubscribe={handleSubscribe} />
+        isSubscribed === false ? (
+          <Paywall onSubscribe={handleSubscribe} />
+        ) : null // if isSubscribed not loaded, display nothing
       ) : (
         <ApplicationSettingsProvider>
           <MealsDatabaseProvider>
