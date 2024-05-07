@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   useColorScheme,
+  Linking,
 } from "react-native";
 import Purchases, { PurchasesPackage } from "react-native-purchases";
 
@@ -16,26 +17,37 @@ const Paywall: React.FC<PaywallProps> = ({ onSubscribe }) => {
   const [offerings, setOfferings] = useState<PurchasesPackage[] | null>(null);
 
   const scheme = useColorScheme();
-  const styles = StyleSheet.create({
+  const dynamicStyles = StyleSheet.create({
     container: {
       flex: 1,
       justifyContent: "center",
       alignItems: "center",
-      padding: 20,
-      backgroundColor: scheme === "dark" ? "#000" : "#fff",
+      backgroundColor: scheme === "dark" ? "#000" : "#F2F1F6",
     },
     title: {
       color: scheme === "dark" ? "#FFF" : "#000",
-      fontSize: 24,
+      fontSize: 32,
       fontWeight: "bold",
-      textAlign: "center",
-      marginBottom: 20,
+      position: "absolute",
+      top: 90,
+      alignItems: "center",
     },
     description: {
       color: scheme === "dark" ? "#DDD" : "#333",
       fontSize: 18,
       textAlign: "center",
-      marginBottom: 30,
+      paddingBottom: 35,
+      paddingLeft: 35,
+      paddingRight: 35,
+    },
+    sectionTitle: {
+      color: scheme === "dark" ? "#AAA" : "#333",
+      fontSize: 13,
+      textTransform: "uppercase",
+      paddingTop: 10,
+      marginBottom: 7,
+      textAlign: "center",
+      alignSelf: "center",
     },
     button: {
       alignItems: "center",
@@ -44,17 +56,22 @@ const Paywall: React.FC<PaywallProps> = ({ onSubscribe }) => {
       paddingVertical: 12,
       paddingHorizontal: 30,
       borderRadius: 10,
-      marginBottom: 12,
+      marginBottom: 10,
     },
     buttonText: {
       color: "#FFF",
       fontSize: 18,
     },
-    buttonDisabled: {
-      backgroundColor: scheme === "dark" ? "#555" : "#ccc",
+    linkContainer: {
+      position: "absolute",
+      bottom: 40,
+      alignItems: "center",
     },
-    buttonTextDisabled: {
-      color: "#999",
+    link: {
+      color: scheme === "dark" ? "#1A73E8" : "#007AFF",
+      fontSize: 16,
+      marginVertical: 10,
+      textAlign: "center",
     },
   });
 
@@ -71,15 +88,16 @@ const Paywall: React.FC<PaywallProps> = ({ onSubscribe }) => {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Chose your plan</Text>
-      <Text style={styles.description}>
-        It's not cheap but your time and health are worth much more
+    <View style={dynamicStyles.container}>
+      <Text style={dynamicStyles.title}>Choose Your Plan</Text>
+      <Text style={dynamicStyles.description}>
+        It's not cheap, but your time and health are worth much more
       </Text>
 
       {offerings &&
         offerings.map((pkg, index) => {
           const { priceString, subscriptionPeriod } = pkg.product;
+          const title = pkg.product.title || "Subscription Plan";
           let period = priceString;
           if (subscriptionPeriod) {
             const periodMap: { [key: string]: string } = {
@@ -102,15 +120,34 @@ const Paywall: React.FC<PaywallProps> = ({ onSubscribe }) => {
             period = `${priceString} for life`;
           }
           return (
-            <TouchableOpacity
-              key={index}
-              style={styles.button}
-              onPress={() => onSubscribe(pkg)}
-            >
-              <Text style={styles.buttonText}>{period}</Text>
-            </TouchableOpacity>
+            <View key={index}>
+              <Text style={dynamicStyles.sectionTitle}>{title}</Text>
+              <TouchableOpacity
+                style={dynamicStyles.button}
+                onPress={() => onSubscribe(pkg)}
+              >
+                <Text style={dynamicStyles.buttonText}>{period}</Text>
+              </TouchableOpacity>
+            </View>
           );
         })}
+
+      <View style={dynamicStyles.linkContainer}>
+        <TouchableOpacity
+          onPress={() =>
+            Linking.openURL(
+              "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+            )
+          }
+        >
+          <Text style={dynamicStyles.link}>Terms of Use (EULA)</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => Linking.openURL("https://calorily.com/privacy")}
+        >
+          <Text style={dynamicStyles.link}>Privacy Policy</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };

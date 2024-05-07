@@ -47,11 +47,11 @@ export default function App() {
     });
     if (apiKey) {
       Purchases.configure({ apiKey });
-      if (__DEV__) {
-        console.log("dev build detected, skipping subscription check");
-        setIsSubscribed(true);
-        return;
-      }
+      // if (__DEV__) {
+      //   console.log("dev build detected, skipping subscription check");
+      //   setIsSubscribed(true);
+      //   return;
+      // }
       const getPackages = async () => {
         try {
           const info = await Purchases.getCustomerInfo();
