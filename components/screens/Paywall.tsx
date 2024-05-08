@@ -89,7 +89,7 @@ const Paywall: React.FC<PaywallProps> = ({ onSubscribe }) => {
 
   return (
     <View style={dynamicStyles.container}>
-      <Text style={dynamicStyles.title}>Choose Your Plan</Text>
+      <Text style={dynamicStyles.title}>You need a plan</Text>
       <Text style={dynamicStyles.description}>
         It's not cheap, but your time and health are worth much more
       </Text>
