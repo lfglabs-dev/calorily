@@ -6,7 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: IS_DEV ? "Calorily Debug" : "Calorily",
   slug: "calorily",
-  version: "1.3.4",
+  version: "1.3.5",
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "automatic",
