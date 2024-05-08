@@ -19,6 +19,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     bundleIdentifier: IS_DEV ? "com.calorily.app.dev" : "com.calorily.app",
     supportsTablet: true,
+    infoPlist: {
+      EULAUrl:
+        "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
+      NSPrivacyUsageDescription:
+        "This app requires access to your privacy data to enhance your experience and functionality.",
+      NSUserTrackingUsageDescription:
+        "We use anonymized data to track app interactions and improve service delivery.",
+      PrivacyPolicyURL: "https://calorily.com/privacy",
+    },
   },
   android: {
     package: IS_DEV ? "com.calorily.app.dev" : "com.calorily.app",
