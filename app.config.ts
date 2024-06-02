@@ -22,11 +22,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     infoPlist: {
       EULAUrl:
         "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
-      NSPrivacyUsageDescription:
-        "This app requires access to your privacy data to enhance your experience and functionality.",
-      NSUserTrackingUsageDescription:
-        "We use anonymized data to track app interactions and improve service delivery.",
-      PrivacyPolicyURL: "https://calorily.com/privacy",
+      // NSPrivacyUsageDescription:
+      //   "This app requires access to your privacy data to enhance your experience and functionality.",
+      // NSUserTrackingUsageDescription:
+      //   "We use anonymized data to track app interactions and improve service delivery.",
+      // PrivacyPolicyURL: "https://calorily.com/privacy",
     },
   },
   android: {
