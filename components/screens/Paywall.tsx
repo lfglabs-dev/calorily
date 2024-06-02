@@ -6,15 +6,18 @@ import {
   StyleSheet,
   useColorScheme,
   Linking,
+  ActivityIndicator,
 } from "react-native";
 import Purchases, { PurchasesPackage } from "react-native-purchases";
 
 interface PaywallProps {
   onSubscribe: (option: PurchasesPackage) => Promise<void>;
+  setIsSubscribed: (isSubscribed: boolean) => void;
 }
 
-const Paywall: React.FC<PaywallProps> = ({ onSubscribe }) => {
+const Paywall: React.FC<PaywallProps> = ({ onSubscribe, setIsSubscribed }) => {
   const [offerings, setOfferings] = useState<PurchasesPackage[] | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const scheme = useColorScheme();
   const dynamicStyles = StyleSheet.create({
@@ -82,10 +85,37 @@ const Paywall: React.FC<PaywallProps> = ({ onSubscribe }) => {
         setOfferings(offerings.current.availablePackages);
       } catch (error) {
         console.error("Error fetching offerings:", error);
+      } finally {
+        setLoading(false);
       }
     };
     fetchOfferings();
   }, []);
+
+  const handleRestore = async () => {
+    setLoading(true);
+    try {
+      const customerInfo = await Purchases.restorePurchases();
+      if (
+        customerInfo.entitlements.active !== undefined &&
+        Object.keys(customerInfo.entitlements.active).length > 0
+      ) {
+        setIsSubscribed(true);
+      }
+    } catch (error) {
+      console.error("Error restoring purchases:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={dynamicStyles.container}>
+        <ActivityIndicator size="large" color={scheme === "dark" ? "#FFF" : "#000"} />
+      </View>
+    );
+  }
 
   return (
     <View style={dynamicStyles.container}>
@@ -134,6 +164,9 @@ const Paywall: React.FC<PaywallProps> = ({ onSubscribe }) => {
         })}
 
       <View style={dynamicStyles.linkContainer}>
+        <TouchableOpacity onPress={handleRestore}>
+          <Text style={dynamicStyles.link}>Restore Purchases</Text>
+        </TouchableOpacity>
         <TouchableOpacity
           onPress={() =>
             Linking.openURL(

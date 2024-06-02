@@ -6,7 +6,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: IS_DEV ? "Calorily Debug" : "Calorily",
   slug: "calorily",
-  version: "1.3.6",
+  version: "1.4.0",
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "automatic",
@@ -17,7 +17,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   assetBundlePatterns: ["**/*"],
   ios: {
-    bundleIdentifier: IS_DEV ? "com.calorily.app.dev" : "com.calorily.app",
+    bundleIdentifier: "com.calorily.app",
     supportsTablet: true,
     infoPlist: {
       EULAUrl:
