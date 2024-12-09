@@ -1,4 +1,5 @@
 import { ExpoConfig, ConfigContext } from "@expo/config";
+import { version } from "./package.json";
 
 const IS_DEV = process.env.APP_VARIANT === "development";
 
@@ -6,7 +7,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: IS_DEV ? "Calorily Debug" : "Calorily",
   slug: "calorily",
-  version: "1.4.0",
+  version: version,
   orientation: "portrait",
   icon: "./assets/icon.png",
   userInterfaceStyle: "automatic",
@@ -19,6 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ios: {
     bundleIdentifier: "com.calorily.app",
     supportsTablet: true,
+    usesAppleSignIn: true,
     infoPlist: {
       EULAUrl:
         "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/",
@@ -48,6 +50,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         cameraPermission: "This app accesses your camera to analyze your meal.",
       },
     ],
+    "expo-apple-authentication",
   ],
   extra: {
     eas: {
