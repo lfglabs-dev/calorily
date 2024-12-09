@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef } from "react";
 import { View, StyleSheet, Animated, Alert, Platform } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
+import { useAuth } from "../../shared/AuthContext";
 
 interface LoginScreenProps {
   onComplete: () => void;
@@ -12,6 +13,7 @@ export default function LoginScreen({ onComplete }: LoginScreenProps) {
   const mounted = useRef(false);
   const isSignInInProgress = useRef(false);
   const hasShownAlert = useRef(false);
+  const { signIn } = useAuth();
 
   useLayoutEffect(() => {
     mounted.current = true;
@@ -78,9 +80,36 @@ export default function LoginScreen({ onComplete }: LoginScreenProps) {
         requestedScopes: [AppleAuthentication.AppleAuthenticationScope.EMAIL],
       });
 
-      console.log("User ID:", credential.user);
-      console.log("Email:", credential.email);
-      console.log("Identity Token:", credential.identityToken);
+      if (!credential.identityToken) {
+        throw new Error("No identity token received from Apple");
+      }
+
+      const response = await fetch("https://api.calorily.com/auth/apple", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          identity_token: credential.identityToken,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Authentication failed with status ${response.status}`);
+      }
+
+      let data;
+      try {
+        data = JSON.parse(await response.text());
+      } catch (e) {
+        throw new Error("Invalid JSON response");
+      }
+
+      if (!data.jwt) {
+        throw new Error("No JWT in response");
+      }
+
+      await signIn(data.jwt);
 
       if (mounted.current) {
         onComplete();
@@ -89,12 +118,29 @@ export default function LoginScreen({ onComplete }: LoginScreenProps) {
       if (e.code === "ERR_REQUEST_CANCELED") {
         showSignInAlert();
       } else {
-        console.error("Apple Sign In Error:", e);
-        if (mounted.current) {
+        console.error("Authentication Error:", e.message || e);
+        if (
+          mounted.current &&
+          (e instanceof TypeError || e.message.includes("network"))
+        ) {
           setTimeout(() => {
             isSignInInProgress.current = false;
             initiateAppleSignIn();
           }, 1000);
+        } else {
+          Alert.alert(
+            "Authentication Failed",
+            "There was a problem signing in. Please try again later.",
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  isSignInInProgress.current = false;
+                  initiateAppleSignIn();
+                },
+              },
+            ]
+          );
         }
       }
     } finally {

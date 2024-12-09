@@ -112,7 +112,10 @@ const Paywall: React.FC<PaywallProps> = ({ onSubscribe, setIsSubscribed }) => {
   if (loading) {
     return (
       <View style={dynamicStyles.container}>
-        <ActivityIndicator size="large" color={scheme === "dark" ? "#FFF" : "#000"} />
+        <ActivityIndicator
+          size="large"
+          color={scheme === "dark" ? "#FFF" : "#000"}
+        />
       </View>
     );
   }

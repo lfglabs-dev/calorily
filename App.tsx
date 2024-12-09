@@ -19,7 +19,8 @@ import { HealthDataProvider } from "./shared/HealthDataContext";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Purchases, { PurchasesPackage } from "react-native-purchases";
 import Paywall from "./components/screens/Paywall";
-import SplashScreen from "./components/screens/SplashScreen";
+import { AuthProvider, useAuth } from "./shared/AuthContext";
+import LoginScreen from "./components/screens/LoginScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -35,12 +36,21 @@ function SummaryStackScreen() {
 }
 
 export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}
+
+function AppContent() {
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? DarkTheme : DefaultTheme;
   const [isSubscribed, setIsSubscribed] = useState<boolean | undefined>(
     undefined
   );
-  const [isSplashComplete, setIsSplashComplete] = useState(false);
+  const [isLoginComplete, setIsLoginComplete] = useState(false);
+  const { isAuthenticated, isLoading } = useAuth();
 
   // Configure Purchases
   useEffect(() => {
@@ -82,8 +92,13 @@ export default function App() {
     }
   };
 
-  if (!isSplashComplete) {
-    return <SplashScreen onComplete={() => setIsSplashComplete(true)} />;
+  // Show login screen if not authenticated
+  if (isLoading) {
+    return <LoginScreen onComplete={() => setIsLoginComplete(true)} />;
+  }
+
+  if (!isAuthenticated && !isLoginComplete) {
+    return <LoginScreen onComplete={() => setIsLoginComplete(true)} />;
   }
 
   return (
