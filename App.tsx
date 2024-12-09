@@ -19,6 +19,7 @@ import { HealthDataProvider } from "./shared/HealthDataContext";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Purchases, { PurchasesPackage } from "react-native-purchases";
 import Paywall from "./components/screens/Paywall";
+import SplashScreen from "./components/screens/SplashScreen";
 
 const Tab = createBottomTabNavigator();
 
@@ -39,6 +40,7 @@ export default function App() {
   const [isSubscribed, setIsSubscribed] = useState<boolean | undefined>(
     undefined
   );
+  const [isSplashComplete, setIsSplashComplete] = useState(false);
 
   // Configure Purchases
   useEffect(() => {
@@ -79,6 +81,10 @@ export default function App() {
       console.error("Error subscribing:", error);
     }
   };
+
+  if (!isSplashComplete) {
+    return <SplashScreen onComplete={() => setIsSplashComplete(true)} />;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
