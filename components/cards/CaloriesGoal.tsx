@@ -3,18 +3,23 @@ import { View, Text, StyleSheet, useColorScheme } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
-import { totalCalories } from "../../utils/food";
+import { getDailyMacros } from "../../utils/food";
 import useDailyCaloriesGoal from "../../hooks/useDailyCaloriesGoal";
 import { useHealthData } from "../../shared/HealthDataContext";
 
 const CaloriesGoalCard = () => {
   const dailyCaloriesGoal = useDailyCaloriesGoal();
-  const [dailyCalories, setDailyCalories] = useState(0);
+  const [dailyMacros, setDailyMacros] = useState({
+    calories: 0,
+    proteins: 0,
+    fats: 0,
+    carbs: 0,
+  });
   const { dailyMeals } = useMealsDatabase();
   const { dailyActiveEnergyBurned } = useHealthData();
 
   useEffect(() => {
-    setDailyCalories(totalCalories(dailyMeals));
+    setDailyMacros(getDailyMacros(dailyMeals));
   }, [dailyMeals]);
 
   const scheme = useColorScheme();
@@ -71,6 +76,22 @@ const CaloriesGoalCard = () => {
       fontSize: 16,
       color: scheme === "dark" ? "#AAA" : "gray",
     },
+    macroContainer: {
+      flexDirection: "row",
+      marginTop: 10,
+      gap: 15,
+    },
+    macroItem: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    macroText: {
+      color: scheme === "dark" ? "#AAA" : "gray",
+      fontSize: 14,
+    },
+    macroIcon: {
+      marginRight: 3,
+    },
   });
 
   return (
@@ -96,11 +117,50 @@ const CaloriesGoalCard = () => {
           </Text>
         </View>
       </View>
+
       <View style={dynamicStyles.bottomSection}>
         <Text style={dynamicStyles.values}>
-          {dailyCalories.toFixed(0)} / {dailyCaloriesGoal.toFixed(0)}
+          {dailyMacros.calories.toFixed(0)} / {dailyCaloriesGoal.toFixed(0)}
           <Text style={dynamicStyles.kcal}> kCal</Text>
         </Text>
+      </View>
+
+      <View style={dynamicStyles.macroContainer}>
+        <View style={dynamicStyles.macroItem}>
+          <Ionicons
+            name="egg"
+            size={16}
+            color={scheme === "dark" ? "#AAA" : "gray"}
+            style={dynamicStyles.macroIcon}
+          />
+          <Text style={dynamicStyles.macroText}>
+            {dailyMacros.proteins.toFixed(0)}g
+          </Text>
+        </View>
+
+        <View style={dynamicStyles.macroItem}>
+          <Ionicons
+            name="pizza"
+            size={16}
+            color={scheme === "dark" ? "#AAA" : "gray"}
+            style={dynamicStyles.macroIcon}
+          />
+          <Text style={dynamicStyles.macroText}>
+            {dailyMacros.fats.toFixed(0)}g
+          </Text>
+        </View>
+
+        <View style={dynamicStyles.macroItem}>
+          <Ionicons
+            name="ice-cream"
+            size={16}
+            color={scheme === "dark" ? "#AAA" : "gray"}
+            style={dynamicStyles.macroIcon}
+          />
+          <Text style={dynamicStyles.macroText}>
+            {dailyMacros.carbs.toFixed(0)}g
+          </Text>
+        </View>
       </View>
     </View>
   );
