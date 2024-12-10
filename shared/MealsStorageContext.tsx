@@ -9,7 +9,12 @@ import * as SQLite from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
 import { useWebSocket } from "./WebSocketContext";
 import AppleHealthKit from "react-native-health";
-import { calculateCalories } from "../utils/food";
+import {
+  calculateCalories,
+  totalCarbs,
+  totalProteins,
+  totalFats,
+} from "../utils/food";
 import { Ingredient } from "../types";
 import { HealthValue } from "react-native-health";
 import { useHealthData } from "./HealthDataContext";
@@ -391,6 +396,31 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     setWeeklyMeals(toUpdated(weeklyMeals));
     return toUpdated;
   };
+
+  const updateMealData = (mealId: string, data: any) => {
+    setWeeklyMeals((prevMeals) => {
+      return prevMeals.map((meal) => {
+        if (meal.meal_id === mealId) {
+          return {
+            ...meal,
+            name: data.meal_name,
+            ingredients: data.ingredients,
+            carbs: totalCarbs(data.ingredients),
+            proteins: totalProteins(data.ingredients),
+            fats: totalFats(data.ingredients),
+            status: "complete" as MealStatus,
+          };
+        }
+        return meal;
+      });
+    });
+  };
+
+  useEffect(() => {
+    if (lastMessage && lastMessage.meal_id) {
+      updateMealData(lastMessage.meal_id, lastMessage.data);
+    }
+  }, [lastMessage]);
 
   return (
     <MealsDatabaseContext.Provider

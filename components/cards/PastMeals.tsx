@@ -13,6 +13,7 @@ import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import { calculateCalories } from "../../utils/food";
 import PastMealCard from "./pastmeals/PastMealCard";
 import EmptyMealCard from "./pastmeals/NoMealCard";
+import LoadingMealCard from "./pastmeals/LoadingMealCard";
 
 const PastMeals = () => {
   const { dailyMeals } = useMealsDatabase();
@@ -41,9 +42,16 @@ const PastMeals = () => {
       {dailyMeals.length > 0 ? (
         dailyMeals
           .sort((a, b) => a.timestamp - b.timestamp)
-          .map((meal, index) => (
-            <PastMealCard key={index.toString()} meal={meal} />
-          ))
+          .map((meal, index) =>
+            meal.status === "analyzing" || meal.status === "pending" ? (
+              <LoadingMealCard
+                key={index.toString()}
+                imageUri={meal.image_uri}
+              />
+            ) : (
+              <PastMealCard key={index.toString()} meal={meal} />
+            )
+          )
       ) : (
         <EmptyMealCard key={0} />
       )}

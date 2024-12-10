@@ -9,14 +9,16 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import CaloriesGoalCard from "../cards/CaloriesGoal";
 import PastMeals from "../cards/PastMeals";
-import AddMeal from "../addmeal/AddMeal";
 import useAddMeal from "../../hooks/useAddMeal";
+import UploadingMeal from "../addmeal/UploadingMeal";
+import useResizedImage from "../../hooks/useResizedImage";
 
 const Summary = ({ navigation }) => {
   const scheme = useColorScheme();
   const [status, requestPermission] = ImagePicker.useCameraPermissions();
   const addMeal = useAddMeal();
   const [imageURI, setImageURI] = useState<string | undefined>();
+  const resizedImage = useResizedImage(imageURI);
 
   const dynamicStyles = StyleSheet.create({
     container: {
@@ -93,12 +95,30 @@ const Summary = ({ navigation }) => {
       <TouchableOpacity style={dynamicStyles.mainButton} onPress={pickImage}>
         <Text style={dynamicStyles.mainButtonText}>Quickly Add Meal</Text>
       </TouchableOpacity>
-      {imageURI ? (
-        <AddMeal
+      {imageURI && resizedImage ? (
+        <UploadingMeal
+          imageBase64={resizedImage.base64}
           imageURI={imageURI}
-          resized={null}
-          addMealFunction={addMeal}
-          close={() => setImageURI(null)}
+          onComplete={(mealId) => {
+            addMeal(
+              {
+                name: "Analyzing...",
+                timestamp: Math.floor(Date.now() / 1000),
+                carbs: 0,
+                proteins: 0,
+                fats: 0,
+                favorite: false,
+                status: "analyzing",
+              },
+              imageURI,
+              mealId
+            );
+            setImageURI(null);
+          }}
+          onError={(error) => {
+            alert(error);
+            setImageURI(null);
+          }}
         />
       ) : null}
     </View>

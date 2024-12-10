@@ -14,10 +14,11 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import { useColorScheme } from "react-native";
 import { calculateCalories } from "../../utils/food";
-import AddMeal from "../addmeal/AddMeal";
 import useResizedImage from "../../hooks/useResizedImage";
 import { useNavigation } from "@react-navigation/native";
 import useAddMeal from "../../hooks/useAddMeal";
+import UploadingMeal from "../addmeal/UploadingMeal";
+import ReviewMeal from "../addmeal/ReviewMeal";
 
 const NewMeal = ({
   prefilledMeal,
@@ -69,8 +70,37 @@ const NewMeal = ({
         exif: false,
         quality: 0.075,
       });
+
       if (!imageResult.canceled && imageResult.assets) {
         setSelectedImageURI(imageResult.assets[0].uri);
+        setPopupComponent(
+          <UploadingMeal
+            imageBase64={resizedImage.base64}
+            onComplete={(mealId) => {
+              addMeal(
+                {
+                  name: "Analyzing...",
+                  timestamp: Math.floor(Date.now() / 1000),
+                  carbs: 0,
+                  proteins: 0,
+                  fats: 0,
+                  favorite: false,
+                  status: "analyzing",
+                },
+                resizedImage.uri,
+                mealId,
+                true
+              );
+              setPopupComponent(null);
+              navigation.goBack();
+            }}
+            onError={(error) => {
+              // Handle error
+              alert(error);
+              setPopupComponent(null);
+            }}
+          />
+        );
       }
     } else if (status.canAskAgain) {
       await requestPermission();
@@ -190,17 +220,20 @@ const NewMeal = ({
             ]}
             onPress={() => {
               setPopupComponent(
-                <AddMeal
+                <ReviewMeal
                   imageURI={selectedImageURI}
-                  resized={resizedImage}
-                  addMealFunction={(meal, imageUri) => {
-                    setMealName(meal.name);
-                    setCarbs(meal.carbs.toFixed(0));
-                    setFats(meal.fats.toFixed(0));
-                    setProteins(meal.proteins.toFixed(0));
-                    console.log("meal info:", meal, imageUri);
+                  mealData={{
+                    name: "",
+                    ingredients: [],
                   }}
-                  close={() => setPopupComponent(null)}
+                  onUpdate={(updatedMeal) => {
+                    setMealName(updatedMeal.name);
+                    setCarbs(updatedMeal.carbs?.toFixed(0) || "0");
+                    setFats(updatedMeal.fats?.toFixed(0) || "0");
+                    setProteins(updatedMeal.proteins?.toFixed(0) || "0");
+                    setPopupComponent(null);
+                  }}
+                  onClose={() => setPopupComponent(null)}
                 />
               );
             }}
