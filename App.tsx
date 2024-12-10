@@ -9,7 +9,6 @@ import { Platform, useColorScheme } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import Progress from "./components/screens/Progress";
 import Summary from "./components/screens/Summary";
 import Settings from "./components/screens/Settings";
 import MealsLibrary from "./components/screens/MealsLibrary";
@@ -24,17 +23,6 @@ import LoginScreen from "./components/screens/LoginScreen";
 import { WebSocketProvider } from "./shared/WebSocketContext";
 
 const Tab = createBottomTabNavigator();
-
-const SummaryStack = createNativeStackNavigator();
-
-function SummaryStackScreen() {
-  return (
-    <SummaryStack.Navigator screenOptions={{ headerShown: false }}>
-      <SummaryStack.Screen name="SummaryScreen" component={Summary} />
-      <SummaryStack.Screen name="MealsLibrary" component={MealsLibrary} />
-    </SummaryStack.Navigator>
-  );
-}
 
 export default function App() {
   return (
@@ -119,7 +107,7 @@ function AppContent() {
                   <Tab.Navigator>
                     <Tab.Screen
                       name="Summary"
-                      component={SummaryStackScreen}
+                      component={Summary}
                       options={{
                         headerShown: false,
                         tabBarIcon: ({ color, size }) => (
@@ -132,16 +120,12 @@ function AppContent() {
                       }}
                     />
                     <Tab.Screen
-                      name="Progress"
-                      component={Progress}
+                      name="Library"
+                      component={MealsLibrary}
                       options={{
                         headerShown: false,
                         tabBarIcon: ({ color, size }) => (
-                          <FontAwesome
-                            name="area-chart"
-                            color={color}
-                            size={size}
-                          />
+                          <FontAwesome name="book" color={color} size={size} />
                         ),
                       }}
                     />

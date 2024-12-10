@@ -1,16 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import PagerView from "react-native-pager-view";
-import {
-  Text,
-  StyleSheet,
-  useColorScheme,
-  TouchableOpacity,
-  ImageBackground,
-  View,
-} from "react-native";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { StyleSheet } from "react-native";
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
-import { calculateCalories } from "../../utils/food";
 import PastMealCard from "./pastmeals/PastMealCard";
 import EmptyMealCard from "./pastmeals/NoMealCard";
 import LoadingMealCard from "./pastmeals/LoadingMealCard";
@@ -41,7 +32,7 @@ const PastMeals = () => {
     >
       {dailyMeals.length > 0 ? (
         dailyMeals
-          .sort((a, b) => a.timestamp - b.timestamp)
+          .sort((a, b) => a.created_at - b.created_at)
           .map((meal, index) =>
             meal.status === "analyzing" ? (
               <LoadingMealCard

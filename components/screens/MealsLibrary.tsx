@@ -14,9 +14,8 @@ import { useNavigation } from "@react-navigation/native";
 import NewMeal from "../library/NewMeal";
 import FavoriteLirary from "../library/FavoriteLibrary";
 
-const Summary = () => {
+const MealsLibrary = () => {
   const scheme = useColorScheme();
-  const navigation = useNavigation();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [popupComponent, setPopupComponent] = useState(null);
   const dynamicStyles = StyleSheet.create({
@@ -32,16 +31,6 @@ const Summary = () => {
       alignItems: "center",
       justifyContent: "center",
     },
-    backButton: {
-      color: "#007AFF",
-      fontSize: 18,
-      position: "absolute",
-      paddingTop: 0.5,
-      left: 10,
-      height: "100%", // Ensuring full height for vertical centering
-      justifyContent: "center", // Center content vertically
-      alignItems: "center", // Center content horizontally
-    },
     headerTitle: {
       fontSize: 22,
       fontWeight: "bold",
@@ -53,10 +42,6 @@ const Summary = () => {
     MealTemplate | undefined
   >();
 
-  const handleBackPress = () => {
-    navigation.goBack();
-  };
-
   const handlePrefillMeal = (meal: MealTemplate) => {
     setSelectedIndex(2);
     setPrefilledMeal(meal);
@@ -65,12 +50,6 @@ const Summary = () => {
   return (
     <SafeAreaView style={dynamicStyles.safeArea}>
       <View style={dynamicStyles.header}>
-        <TouchableOpacity
-          onPress={handleBackPress}
-          style={dynamicStyles.backButton}
-        >
-          <Text style={dynamicStyles.backButton}>&lt; Summary</Text>
-        </TouchableOpacity>
         <Text style={dynamicStyles.headerTitle}>Library</Text>
       </View>
 
@@ -114,4 +93,4 @@ const Summary = () => {
   );
 };
 
-export default Summary;
+export default MealsLibrary;

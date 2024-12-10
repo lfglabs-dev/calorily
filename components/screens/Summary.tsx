@@ -86,11 +86,9 @@ const Summary = ({ navigation }) => {
       <PastMeals />
       <TouchableOpacity
         style={dynamicStyles.secondaryButton}
-        onPress={() => navigation.navigate("MealsLibrary")}
+        onPress={() => {}}
       >
-        <Text style={dynamicStyles.secondaryButtonText}>
-          Open Meals Library
-        </Text>
+        <Text style={dynamicStyles.secondaryButtonText}>Load from Library</Text>
       </TouchableOpacity>
       <TouchableOpacity style={dynamicStyles.mainButton} onPress={pickImage}>
         <Text style={dynamicStyles.mainButtonText}>Quickly Add Meal</Text>
