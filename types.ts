@@ -1,30 +1,19 @@
-type Macro = {
+export interface Ingredient {
+  name: string;
+  amount: number;
   carbs: number;
   proteins: number;
   fats: number;
-};
+}
 
-type Ingredient = Macro & {
-  name: string;
-  amount: string;
-};
+export interface ExtendedIngredient extends Ingredient {
+  calories: number;
+  selected: boolean;
+}
 
-type Meal = Macro & {
-  name: string;
-  timestamp: number;
-  favorite: number;
-};
-
-type MealTemplate = Macro & {
-  name: string;
-  image_uri: string;
-};
-
-type MealEntry = Meal & { id: number; image_uri: string };
-
-type ApiResponse = {
+export interface ApiResponse {
   name: string;
   ingredients: Ingredient[];
-  error: undefined | string;
-  response: undefined | string;
-};
+  error?: string;
+  response?: string;
+}

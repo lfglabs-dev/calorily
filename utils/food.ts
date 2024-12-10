@@ -1,39 +1,53 @@
-export const calculateCalories = (macro: Macro): number => {
-  const carbsCalories = macro.carbs * 4;
-  const proteinsCalories = macro.proteins * 4;
-  const fatsCalories = macro.fats * 9;
+import { Ingredient, ExtendedIngredient } from "../types";
+import { StoredMeal } from "../shared/MealsStorageContext";
 
-  return carbsCalories + proteinsCalories + fatsCalories;
+const CALORIES_PER_GRAM = {
+  carbs: 4,
+  proteins: 4,
+  fats: 9,
 };
 
-export const totalCarbs = (ingredients: Ingredient[]): number => {
-  return ingredients.reduce((total, ingredient) => total + ingredient.carbs, 0);
-};
-
-export const totalProteins = (ingredients: Ingredient[]): number => {
-  return ingredients.reduce(
-    (total, ingredient) => total + ingredient.proteins,
-    0
+export const calculateCalories = (ingredient: Ingredient): number => {
+  return (
+    ingredient.carbs * CALORIES_PER_GRAM.carbs +
+    ingredient.proteins * CALORIES_PER_GRAM.proteins +
+    ingredient.fats * CALORIES_PER_GRAM.fats
   );
 };
 
-export const totalFats = (ingredients: Ingredient[]): number => {
-  return ingredients.reduce((total, ingredient) => total + ingredient.fats, 0);
+export const totalCalories = (ingredients: ExtendedIngredient[]): number => {
+  return ingredients
+    .filter((ing) => ing.selected)
+    .reduce((sum, ing) => sum + calculateCalories(ing), 0);
 };
 
-export const totalCalories = (macros: Macro[]): number => {
-  return macros.reduce((total, macro) => total + calculateCalories(macro), 0);
+export const totalCarbs = (ingredients: ExtendedIngredient[]): number => {
+  return ingredients
+    .filter((ing) => ing.selected)
+    .reduce((sum, ing) => sum + ing.carbs, 0);
+};
+
+export const totalProteins = (ingredients: ExtendedIngredient[]): number => {
+  return ingredients
+    .filter((ing) => ing.selected)
+    .reduce((sum, ing) => sum + ing.proteins, 0);
+};
+
+export const totalFats = (ingredients: ExtendedIngredient[]): number => {
+  return ingredients
+    .filter((ing) => ing.selected)
+    .reduce((sum, ing) => sum + ing.fats, 0);
 };
 
 export const getDailyCalories = (
-  mealEntries: Meal[]
+  mealEntries: StoredMeal[]
 ): {
-  [day: string]: any;
+  [day: string]: StoredMeal[];
 } => {
-  const mealsByDay: { [day: string]: Meal[] } = {};
+  const mealsByDay: { [day: string]: StoredMeal[] } = {};
 
   mealEntries.forEach((meal) => {
-    const date = new Date(meal.timestamp*1000);
+    const date = new Date(meal.timestamp * 1000);
     const dayKey = date.toISOString().split("T")[0];
 
     if (!mealsByDay[dayKey]) {

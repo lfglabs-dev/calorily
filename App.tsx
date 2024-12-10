@@ -21,6 +21,7 @@ import Purchases, { PurchasesPackage } from "react-native-purchases";
 import Paywall from "./components/screens/Paywall";
 import { AuthProvider, useAuth } from "./shared/AuthContext";
 import LoginScreen from "./components/screens/LoginScreen";
+import { WebSocketProvider } from "./shared/WebSocketContext";
 
 const Tab = createBottomTabNavigator();
 
@@ -110,49 +111,55 @@ function AppContent() {
         />
       ) : (
         <ApplicationSettingsProvider>
-          <MealsDatabaseProvider>
-            <HealthDataProvider>
-              <NavigationContainer theme={theme}>
-                <StatusBar style="auto" />
-                <Tab.Navigator>
-                  <Tab.Screen
-                    name="Summary"
-                    component={SummaryStackScreen}
-                    options={{
-                      headerShown: false,
-                      tabBarIcon: ({ color, size }) => (
-                        <FontAwesome name="cutlery" color={color} size={size} />
-                      ),
-                    }}
-                  />
-                  <Tab.Screen
-                    name="Progress"
-                    component={Progress}
-                    options={{
-                      headerShown: false,
-                      tabBarIcon: ({ color, size }) => (
-                        <FontAwesome
-                          name="area-chart"
-                          color={color}
-                          size={size}
-                        />
-                      ),
-                    }}
-                  />
-                  <Tab.Screen
-                    name="Settings"
-                    component={Settings}
-                    options={{
-                      headerShown: false,
-                      tabBarIcon: ({ color, size }) => (
-                        <FontAwesome name="cog" color={color} size={size} />
-                      ),
-                    }}
-                  />
-                </Tab.Navigator>
-              </NavigationContainer>
-            </HealthDataProvider>
-          </MealsDatabaseProvider>
+          <WebSocketProvider>
+            <MealsDatabaseProvider>
+              <HealthDataProvider>
+                <NavigationContainer theme={theme}>
+                  <StatusBar style="auto" />
+                  <Tab.Navigator>
+                    <Tab.Screen
+                      name="Summary"
+                      component={SummaryStackScreen}
+                      options={{
+                        headerShown: false,
+                        tabBarIcon: ({ color, size }) => (
+                          <FontAwesome
+                            name="cutlery"
+                            color={color}
+                            size={size}
+                          />
+                        ),
+                      }}
+                    />
+                    <Tab.Screen
+                      name="Progress"
+                      component={Progress}
+                      options={{
+                        headerShown: false,
+                        tabBarIcon: ({ color, size }) => (
+                          <FontAwesome
+                            name="area-chart"
+                            color={color}
+                            size={size}
+                          />
+                        ),
+                      }}
+                    />
+                    <Tab.Screen
+                      name="Settings"
+                      component={Settings}
+                      options={{
+                        headerShown: false,
+                        tabBarIcon: ({ color, size }) => (
+                          <FontAwesome name="cog" color={color} size={size} />
+                        ),
+                      }}
+                    />
+                  </Tab.Navigator>
+                </NavigationContainer>
+              </HealthDataProvider>
+            </MealsDatabaseProvider>
+          </WebSocketProvider>
         </ApplicationSettingsProvider>
       )}
     </GestureHandlerRootView>

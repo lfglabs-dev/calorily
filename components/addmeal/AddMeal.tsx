@@ -16,6 +16,11 @@ import { exampleResponse } from "./mockup";
 import useResizedImage from "../../hooks/useResizedImage";
 import LoadingMeal from "./Loading";
 import Bug from "./Bug";
+import { useWebSocket } from "../../shared/WebSocketContext";
+import { v4 as uuidv4 } from "uuid";
+import { Ingredient, ExtendedIngredient, ApiResponse } from "../../types";
+import { useAuth } from "../../shared/AuthContext";
+import { MealStatus } from "../../shared/MealsStorageContext";
 
 const SNAP_POINTS = ["90%"];
 
@@ -30,6 +35,9 @@ const AddMeal = ({ imageURI, resized, addMealFunction, close }) => {
   const resizedImage = resized ? resized : useResizedImage(imageURI);
   const [lastResponse, setLastResponse] = useState<ApiResponse>(null);
   const [dialogVisible, setDialogVisible] = useState(false);
+  const [mealId] = useState(() => uuidv4());
+  const { lastMessage } = useWebSocket();
+  const { jwt } = useAuth();
 
   const openComment = () => {
     setDialogVisible(true);
@@ -78,23 +86,42 @@ const AddMeal = ({ imageURI, resized, addMealFunction, close }) => {
   const fetchIngredients = async (b64Image: string) => {
     setIsLoading("loading");
     try {
-      const response = await fetch("https://api.calorily.com/food_data", {
+      const cleanBase64 = b64Image.replace(/^data:image\/\w+;base64,/, "");
+
+      const response = await fetch("https://api.calorily.com/meals", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${jwt}`,
         },
-        body: JSON.stringify({ b64_img: b64Image }),
+        body: JSON.stringify({
+          meal_id: mealId,
+          b64_img: cleanBase64,
+        }),
+      }).catch((error) => {
+        console.error("Network error:", error);
+        throw new Error(
+          "Network connection failed. Please check your internet connection."
+        );
       });
-      const responseJson = await response.json();
-      console.log("responsejson:", responseJson);
-      //Simulate network request delay
-      // function delay(ms) {
-      //   return new Promise((resolve) => setTimeout(resolve, ms));
-      // }
-      // await delay(3000);
-      loadResponse(responseJson as any);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API Error:", errorData);
+        throw new Error(errorData.message || "Failed to upload image");
+      }
+
+      // Response is successful, wait for WebSocket
     } catch (error) {
-      console.error(error);
+      console.error("Upload error:", error);
+      setIsLoading("bug");
+      setLastResponse({
+        error: error.message,
+        response:
+          "Failed to upload image. Please check your internet connection and try again.",
+        name: "",
+        ingredients: [],
+      });
     }
   };
 
@@ -110,6 +137,30 @@ const AddMeal = ({ imageURI, resized, addMealFunction, close }) => {
     }
   }, [resizedImage]);
 
+  useEffect(() => {
+    if (lastMessage && lastMessage.meal_id === mealId) {
+      loadResponse({
+        name: lastMessage.data.meal_name,
+        ingredients: lastMessage.data.ingredients,
+      });
+    }
+  }, [lastMessage]);
+
+  const handleAddMeal = () => {
+    const meal = {
+      name: name || "Analyzing...",
+      carbs: 0,
+      proteins: 0,
+      fats: 0,
+      timestamp: Math.floor(Date.now() / 1000),
+      favorite: false,
+      status: "analyzing" as MealStatus,
+    };
+
+    addMealFunction(meal, resizedImage.uri, mealId, false);
+    bottomSheetRef.current.close();
+  };
+
   return (
     <BottomSheet
       ref={bottomSheetRef}
@@ -123,7 +174,11 @@ const AddMeal = ({ imageURI, resized, addMealFunction, close }) => {
         {isLoading === "loading" ? (
           <LoadingMeal imageURI={imageURI} />
         ) : isLoading === "bug" ? (
-          <Bug openComment={openComment} onClose={close} response={lastResponse?.response} />
+          <Bug
+            openComment={openComment}
+            onClose={close}
+            response={lastResponse?.response}
+          />
         ) : (
           <>
             {/* Result showcase */}
@@ -151,18 +206,7 @@ const AddMeal = ({ imageURI, resized, addMealFunction, close }) => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles(colorScheme).mainButton}
-              onPress={() => {
-                const meal = {
-                  name,
-                  carbs: totalCarbs(ingredients),
-                  proteins: totalProteins(ingredients),
-                  fats: totalFats(ingredients),
-                  timestamp: Math.floor(Date.now() / 1000),
-                  favorite: false,
-                };
-                addMealFunction(meal, resizedImage.uri);
-                bottomSheetRef.current.close();
-              }}
+              onPress={handleAddMeal}
             >
               <Text style={styles(colorScheme).mainButtonText}>Add Meal</Text>
             </TouchableOpacity>

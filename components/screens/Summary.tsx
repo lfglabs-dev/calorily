@@ -66,7 +66,6 @@ const Summary = ({ navigation }) => {
         quality: 0.075,
       });
       if (!imageResult.canceled && imageResult.assets) {
-        console.log(imageResult);
         setImageURI(imageResult.assets[0].uri);
       }
     } else if (status.canAskAgain) {

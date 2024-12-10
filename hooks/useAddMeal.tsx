@@ -1,6 +1,7 @@
 import { useHealthData } from "../shared/HealthDataContext";
 import { useMealsDatabase } from "../shared/MealsStorageContext";
 import { calculateCalories } from "../utils/food";
+import { StoredMeal } from "../shared/MealsStorageContext";
 
 const useAddMeal = () => {
   const { insertMeal } = useMealsDatabase();
@@ -15,23 +16,23 @@ const useAddMeal = () => {
     return "Dinner";
   };
 
-  const addMeal = (meal: Meal, imageUri: string) => {
-    const mealDate = new Date(meal.timestamp * 1000);
-    const mealType = getMealType(mealDate);
+  const addMeal = async (
+    meal: Partial<StoredMeal>,
+    imageUri: string,
+    mealId?: string
+  ) => {
+    try {
+      // Don't save to HealthKit here - wait for WebSocket response
+      await insertMeal(meal, imageUri, mealId);
 
-    insertMeal(meal, imageUri);
+      // Remove or comment out this line
+      // saveFoodData(nutrientData);
 
-    const nutrientData = {
-      foodName: meal.name,
-      mealType: mealType,
-      date: mealDate.toISOString(),
-      carbohydrates: meal.carbs,
-      fatTotal: meal.fats,
-      protein: meal.proteins,
-      energy: calculateCalories(meal),
-    };
-
-    saveFoodData(nutrientData);
+      return true;
+    } catch (error) {
+      console.error("Error adding meal:", error);
+      return false;
+    }
   };
 
   return addMeal;
