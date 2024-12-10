@@ -8,13 +8,15 @@ import {
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useMealsDatabase } from "../../../shared/MealsStorageContext";
-import { calculateCalories } from "../../../utils/food";
+import { getMealMacros } from "../../../utils/food";
+import { StoredMeal } from "../../../types";
 
-const PastMealCard = ({ meal }: { meal: MealEntry }) => {
+const PastMealCard = ({ meal }: { meal: StoredMeal }) => {
   const scheme = useColorScheme();
   const { deleteMealById } = useMealsDatabase();
+  const macros = getMealMacros(meal);
 
-  const formatDate = (timestamp) => {
+  const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
     return `${date.getHours()}:${date
       .getMinutes()
@@ -93,39 +95,35 @@ const PastMealCard = ({ meal }: { meal: MealEntry }) => {
       resizeMode="cover"
       imageStyle={cardStyles.card}
     >
-      <View
-        style={{
-          padding: 20,
-          height: "100%",
-        }}
-      >
+      <View style={{ padding: 20, height: "100%" }}>
         <TouchableOpacity style={cardStyles.closeButton} onPress={handleDelete}>
           <FontAwesome name="close" size={24} color="#A9A9A9" />
         </TouchableOpacity>
-        <Text style={cardStyles.title}>{meal.name}</Text>
-        {/* <View style={cardStyles.badge}>
-          <Text style={cardStyles.badgeText}>{meal.type}</Text>
-        </View> */}
+        <Text style={cardStyles.title}>
+          {meal.last_analysis?.meal_name || "Analyzing..."}
+        </Text>
         <View style={cardStyles.detailRow}>
           <Text style={cardStyles.fieldName}>Carbs:</Text>
-          <Text style={cardStyles.fieldValue}>{meal.carbs.toFixed(1)}g</Text>
+          <Text style={cardStyles.fieldValue}>{macros.carbs.toFixed(1)}g</Text>
         </View>
         <View style={cardStyles.detailRow}>
           <Text style={cardStyles.fieldName}>Proteins:</Text>
-          <Text style={cardStyles.fieldValue}>{meal.proteins.toFixed(1)}g</Text>
+          <Text style={cardStyles.fieldValue}>
+            {macros.proteins.toFixed(1)}g
+          </Text>
         </View>
         <View style={cardStyles.detailRow}>
           <Text style={cardStyles.fieldName}>Fats:</Text>
-          <Text style={cardStyles.fieldValue}>{meal.fats.toFixed(1)}g</Text>
+          <Text style={cardStyles.fieldValue}>{macros.fats.toFixed(1)}g</Text>
         </View>
         <View style={cardStyles.detailRow}>
           <Text style={cardStyles.fieldName}>Calories:</Text>
           <Text style={cardStyles.fieldValue}>
-            {+calculateCalories(meal).toFixed(1)} kcal
+            {macros.calories.toFixed(1)} kcal
           </Text>
         </View>
         <View style={cardStyles.dateBadge}>
-          <Text style={cardStyles.dateText}>{formatDate(meal.timestamp)}</Text>
+          <Text style={cardStyles.dateText}>{formatDate(meal.created_at)}</Text>
         </View>
       </View>
     </ImageBackground>

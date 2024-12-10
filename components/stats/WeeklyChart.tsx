@@ -3,7 +3,8 @@ import { Text, View, StyleSheet, useColorScheme } from "react-native";
 import { Bar, CartesianChart } from "victory-native";
 import { LinearGradient, useFont, vec } from "@shopify/react-native-skia";
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
-import { getDailyCalories, totalCalories } from "../../utils/food";
+import { totalCalories } from "../../utils/food";
+import { StoredMeal } from "../../types";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 const styles = (scheme) =>
@@ -17,6 +18,26 @@ const styles = (scheme) =>
       fontSize: 18,
     },
   });
+
+// Helper function to group meals by day
+const getDailyCalories = (
+  meals: StoredMeal[]
+): { [day: string]: StoredMeal[] } => {
+  const mealsByDay: { [day: string]: StoredMeal[] } = {};
+
+  meals.forEach((meal) => {
+    const date = new Date(meal.created_at * 1000);
+    const dayKey = date.toISOString().split("T")[0];
+
+    if (!mealsByDay[dayKey]) {
+      mealsByDay[dayKey] = [];
+    }
+
+    mealsByDay[dayKey].push(meal);
+  });
+
+  return mealsByDay;
+};
 
 const WeeklyCalories = () => {
   const font = useFont(require("../../assets/SFProText-Regular.ttf"), 12);

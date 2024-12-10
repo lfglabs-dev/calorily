@@ -43,7 +43,7 @@ const PastMeals = () => {
         dailyMeals
           .sort((a, b) => a.timestamp - b.timestamp)
           .map((meal, index) =>
-            meal.status === "analyzing" || meal.status === "pending" ? (
+            meal.status === "analyzing" ? (
               <LoadingMealCard
                 key={index.toString()}
                 imageUri={meal.image_uri}

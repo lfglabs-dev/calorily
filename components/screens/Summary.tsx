@@ -100,19 +100,7 @@ const Summary = ({ navigation }) => {
           imageBase64={resizedImage.base64}
           imageURI={imageURI}
           onComplete={(mealId) => {
-            addMeal(
-              {
-                name: "Analyzing...",
-                timestamp: Math.floor(Date.now() / 1000),
-                carbs: 0,
-                proteins: 0,
-                fats: 0,
-                favorite: false,
-                status: "analyzing",
-              },
-              imageURI,
-              mealId
-            );
+            addMeal(imageURI, mealId);
             setImageURI(null);
           }}
           onError={(error) => {

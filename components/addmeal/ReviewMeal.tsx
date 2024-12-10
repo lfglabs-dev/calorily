@@ -12,9 +12,14 @@ import LoadingMeal from "./Loading";
 import Bug from "./Bug";
 import { useWebSocket } from "../../shared/WebSocketContext";
 import { v4 as uuidv4 } from "uuid";
-import { ExtendedIngredient, ApiResponse } from "../../types";
 import { useAuth } from "../../shared/AuthContext";
 import { MealStatus } from "../../shared/MealsStorageContext";
+import { Ingredient } from "../../types";
+
+interface ExtendedIngredient extends Ingredient {
+  calories: number;
+  selected: boolean;
+}
 
 const SNAP_POINTS = ["90%"];
 
@@ -25,7 +30,8 @@ const ReviewMeal = ({ imageURI, mealData, onUpdate, onClose }) => {
   const [ingredients, setIngredients] = useState<ExtendedIngredient[]>(
     mealData?.ingredients || []
   );
-  const [lastResponse, setLastResponse] = useState<ApiResponse>(mealData);
+  const [lastResponse, setLastResponse] =
+    useState<ExtendedIngredient[]>(mealData);
   const [dialogVisible, setDialogVisible] = useState(false);
   const { jwt } = useAuth();
 

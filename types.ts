@@ -6,14 +6,35 @@ export interface Ingredient {
   fats: number;
 }
 
-export interface ExtendedIngredient extends Ingredient {
-  calories: number;
-  selected: boolean;
+export interface MealAnalysis {
+  meal_id: string;
+  meal_name: string;
+  ingredients: Ingredient[];
+  timestamp: string;
 }
 
-export interface ApiResponse {
+export interface StoredMeal {
+  id: number;
+  meal_id: string;
+  image_uri: string;
+  favorite: boolean;
+  status: MealStatus;
+  created_at: number;
+  last_analysis?: MealAnalysis;
+  name?: string;
+  carbs?: number;
+  proteins?: number;
+  fats?: number;
+}
+
+export type MealStatus = "analyzing" | "complete" | "error";
+
+export interface MealTemplate {
+  id?: number;
   name: string;
-  ingredients: Ingredient[];
-  error?: string;
-  response?: string;
+  image_uri: string;
+  carbs: number;
+  proteins: number;
+  fats: number;
+  favorite: boolean;
 }

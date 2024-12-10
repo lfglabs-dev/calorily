@@ -1,38 +1,61 @@
-import React, { useEffect, useState } from "react";
-import { SafeAreaView, StyleSheet, ScrollView } from "react-native";
-import { useMealsDatabase } from "../../shared/MealsStorageContext";
+import React, { useEffect } from "react";
+import {
+  SafeAreaView,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  Text,
+} from "react-native";
 import MealItem from "./MealItem";
+import { StoredMeal, MealTemplate } from "../../types";
+import { useMealLibrary } from "../../hooks/useMealLibrary";
 
-const FavoriteLirary = ({
+const FavoriteLibrary = ({
   handlePrefillMeal,
 }: {
   handlePrefillMeal: (meal: MealTemplate | undefined) => void;
 }) => {
-  const { fetchMealsInRangeAsync, deleteMealById } = useMealsDatabase();
-  const [meals, setMeals] = useState<Array<MealEntry>>([]);
-
-  const removeMeal = (meal: MealEntry) => {
-    setMeals(meals.filter((other_meal) => meal.id !== other_meal.id));
-    deleteMealById(meal.id);
-  };
+  const { meals, setMeals, isLoading, error, loadMeals, removeMeal } =
+    useMealLibrary();
 
   useEffect(() => {
-    fetchMealsInRangeAsync(0, 100).then(setMeals);
-  }, []);
+    loadMeals();
+  }, [loadMeals]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator size="large" />
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text>Error loading meals: {error}</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.grid}>
-        {meals
-          .filter((meal) => meal.favorite)
-          .map((meal) => (
-            <MealItem
-              meal={meal}
-              setMeals={setMeals}
-              removeMeal={removeMeal}
-              handlePrefillMeal={handlePrefillMeal}
-            />
-          ))}
+        {Array.isArray(meals) ? (
+          meals
+            .filter((meal) => meal.favorite)
+            .map((meal) => (
+              <MealItem
+                key={meal.id}
+                meal={meal}
+                setMeals={setMeals}
+                removeMeal={removeMeal}
+                handlePrefillMeal={handlePrefillMeal}
+              />
+            ))
+        ) : (
+          <Text>No favorite meals available</Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -85,4 +108,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FavoriteLirary;
+export default FavoriteLibrary;

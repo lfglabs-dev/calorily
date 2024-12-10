@@ -8,73 +8,65 @@ import React, {
 import * as SQLite from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
 import { useWebSocket } from "./WebSocketContext";
-import AppleHealthKit from "react-native-health";
 import {
   calculateCalories,
   totalCarbs,
   totalProteins,
   totalFats,
+  getMealMacros,
 } from "../utils/food";
-import { Ingredient } from "../types";
+import { Ingredient, StoredMeal, MealStatus, MealAnalysis } from "../types";
 import { HealthValue } from "react-native-health";
 import { useHealthData } from "./HealthDataContext";
 
 const db = SQLite.openDatabase("meals.db");
 
-export type MealStatus = "pending" | "analyzing" | "complete" | "error";
-
-export interface StoredMeal {
-  id?: number;
-  name: string;
-  carbs: number;
-  proteins: number;
-  fats: number;
-  timestamp: number;
-  image_uri: string;
-  favorite: boolean;
-  status: MealStatus;
-  meal_id?: string;
-}
-
-const DB_VERSION = 2; // Increment this when schema changes
+const DB_VERSION = 3; // Increment from 2 to 3
 
 const setupDatabaseAsync = async (): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
-      // Drop existing tables to force recreation
-      tx.executeSql("DROP TABLE IF EXISTS meals", [], () => {
-        tx.executeSql("DROP TABLE IF EXISTS version", [], () => {
-          // Create version table first
+      // First create version table if it doesn't exist
+      tx.executeSql(
+        "CREATE TABLE IF NOT EXISTS version (version INTEGER PRIMARY KEY)",
+        [],
+        () => {
+          // Then create meals table if it doesn't exist
           tx.executeSql(
-            "CREATE TABLE IF NOT EXISTS version (version INTEGER PRIMARY KEY)",
+            `CREATE TABLE IF NOT EXISTS meals (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              meal_id TEXT UNIQUE,
+              image_uri TEXT NOT NULL,
+              favorite BOOLEAN NOT NULL DEFAULT 0,
+              status TEXT NOT NULL DEFAULT 'analyzing',
+              created_at INTEGER NOT NULL,
+              last_analysis TEXT,
+              some_new_field TEXT,
+              another_field INTEGER DEFAULT 0
+            );`,
             [],
             () => {
-              // Create meals table
+              // Check version and update if needed
               tx.executeSql(
-                `CREATE TABLE IF NOT EXISTS meals (
-                  id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                  name TEXT, 
-                  carbs REAL, 
-                  proteins REAL, 
-                  fats REAL, 
-                  timestamp INTEGER, 
-                  image_uri TEXT, 
-                  favorite BOOLEAN NOT NULL DEFAULT 0,
-                  status TEXT NOT NULL DEFAULT 'complete',
-                  meal_id TEXT
-                );`,
+                "SELECT version FROM version LIMIT 1",
                 [],
-                () => {
-                  // Insert initial version
-                  tx.executeSql(
-                    "INSERT INTO version (version) VALUES (?)",
-                    [DB_VERSION],
-                    () => resolve(),
-                    (_, error) => {
-                      reject(error);
-                      return false;
-                    }
-                  );
+                (_, result) => {
+                  const currentVersion =
+                    result.rows.length > 0 ? result.rows.item(0).version : 0;
+                  if (currentVersion < DB_VERSION) {
+                    // After all updates, update the version number
+                    tx.executeSql(
+                      "INSERT OR REPLACE INTO version (version) VALUES (?)",
+                      [DB_VERSION],
+                      () => resolve(),
+                      (_, error) => {
+                        reject(error);
+                        return false;
+                      }
+                    );
+                  } else {
+                    resolve();
+                  }
                 },
                 (_, error) => {
                   reject(error);
@@ -87,8 +79,12 @@ const setupDatabaseAsync = async (): Promise<void> => {
               return false;
             }
           );
-        });
-      });
+        },
+        (_, error) => {
+          reject(error);
+          return false;
+        }
+      );
     });
   });
 };
@@ -99,13 +95,16 @@ const fetchMealsSinceTimestamp = async (
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
-        "SELECT * FROM meals WHERE timestamp >= ? ORDER BY timestamp DESC;",
+        "SELECT * FROM meals WHERE created_at >= ? ORDER BY created_at DESC;",
         [timestamp],
         (_, result) => {
           const meals = result.rows._array.map((row) => ({
             ...row,
-            favorite: Boolean(row.favorite), // Convert SQLite integer to boolean
+            favorite: Boolean(row.favorite),
             status: (row.status || "complete") as MealStatus,
+            last_analysis: row.last_analysis
+              ? JSON.parse(row.last_analysis)
+              : undefined,
           }));
           resolve(meals);
         },
@@ -136,33 +135,22 @@ const deleteMealByIdAsync = async (id: number): Promise<void> => {
   });
 };
 
-const updateMealByIdAsync = async (
+const updateMealById = async (
   id: number,
-  meal: Partial<StoredMeal>
+  updates: Partial<StoredMeal>
 ): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
+      const fields = Object.keys(updates);
+      const setClause = fields.map((field) => `${field} = ?`).join(", ");
+      const values = fields.map((field) => updates[field]);
+      const query = `UPDATE meals SET ${setClause} WHERE id = ?`;
+      const params = [...values, id];
+
       tx.executeSql(
-        `UPDATE meals 
-         SET name = COALESCE(?, name),
-             carbs = COALESCE(?, carbs),
-             proteins = COALESCE(?, proteins),
-             fats = COALESCE(?, fats),
-             timestamp = COALESCE(?, timestamp),
-             favorite = COALESCE(?, favorite),
-             status = COALESCE(?, status)
-         WHERE id = ?;`,
-        [
-          meal.name,
-          meal.carbs,
-          meal.proteins,
-          meal.fats,
-          meal.timestamp,
-          meal.favorite ? 1 : 0,
-          meal.status,
-          id,
-        ],
-        () => {
+        query,
+        params,
+        (_, result) => {
           resolve();
         },
         (_, error) => {
@@ -179,54 +167,62 @@ const fetchMealsInRangeAsync = async (
   count: number
 ): Promise<StoredMeal[]> => {
   return new Promise((resolve, reject) => {
-    db.transaction((tx) => {
-      tx.executeSql(
-        "SELECT * FROM meals ORDER BY timestamp DESC LIMIT ? OFFSET ?;",
-        [count, startIndex],
-        (_, result) => {
-          const meals = result.rows._array.map((row) => ({
-            ...row,
-            favorite: Boolean(row.favorite),
-            status: (row.status || "complete") as MealStatus,
-          }));
-          resolve(meals);
-        },
-        (_, error) => {
-          reject(error);
-          return false;
-        }
-      );
-    });
+    try {
+      db.transaction((tx) => {
+        tx.executeSql(
+          "SELECT * FROM meals ORDER BY created_at DESC LIMIT ? OFFSET ?;",
+          [count, startIndex],
+          (_, result) => {
+            if (!result.rows || !result.rows._array) {
+              console.log("No rows found");
+              resolve([]);
+              return;
+            }
+            const meals = result.rows._array.map((row) => ({
+              ...row,
+              favorite: Boolean(row.favorite),
+              status: (row.status || "complete") as MealStatus,
+              last_analysis: row.last_analysis
+                ? JSON.parse(row.last_analysis)
+                : undefined,
+            }));
+            console.log("Fetched meals from DB:", meals);
+            resolve(meals);
+          },
+          (_, error) => {
+            console.error("SQL Error:", error);
+            reject(error);
+            return false;
+          }
+        );
+      });
+    } catch (error) {
+      console.error("Transaction Error:", error);
+      reject(error);
+    }
   });
 };
 
 type MealsDatabaseContextProps = {
   dailyMeals: StoredMeal[];
   weeklyMeals: StoredMeal[];
+  insertMeal: (tmpImageUri: string, mealId?: string) => Promise<void>;
+  deleteMealById: (id: number) => Promise<void>;
+  updateMealById: (id: number, updates: Partial<StoredMeal>) => Promise<void>;
   fetchMealsInRangeAsync: (
     startIndex: number,
     count: number
   ) => Promise<StoredMeal[]>;
-  insertMeal: (
-    meal: Partial<StoredMeal>,
-    tmpImageUri: string,
-    mealId?: string
-  ) => Promise<void>;
-  deleteMealById: (id: number) => Promise<void>;
-  updateMealById: (
-    id: number,
-    meal: Partial<StoredMeal>
-  ) => (meals: StoredMeal[]) => StoredMeal[];
   refreshMeals: () => Promise<void>;
 };
 
 const MealsDatabaseContext = createContext<MealsDatabaseContextProps>({
   dailyMeals: [],
   weeklyMeals: [],
-  fetchMealsInRangeAsync: async () => [],
   insertMeal: async () => {},
   deleteMealById: async () => {},
-  updateMealById: () => (meals) => meals,
+  updateMealById: async () => {},
+  fetchMealsInRangeAsync: async () => [],
   refreshMeals: async () => {},
 });
 
@@ -243,9 +239,18 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   const { saveFoodData } = useHealthData();
 
   useEffect(() => {
+    console.log("Setting up database...");
     setupDatabaseAsync()
-      .then(() => refreshMeals())
-      .catch(console.error);
+      .then(() => {
+        console.log("Database setup complete, refreshing meals...");
+        return refreshMeals();
+      })
+      .then(() => {
+        console.log("Initial meal refresh complete");
+      })
+      .catch((error) => {
+        console.error("Error during setup:", error);
+      });
   }, []);
 
   useEffect(() => {
@@ -253,7 +258,7 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     startOfToday.setHours(0, 0, 0, 0);
     const timestampToday = Math.floor(startOfToday.getTime() / 1000);
     const mealsForToday = weeklyMeals.filter(
-      (meal) => meal.timestamp >= timestampToday
+      (meal) => meal.created_at >= timestampToday
     );
     setDailyMeals(mealsForToday);
   }, [weeklyMeals]);
@@ -261,47 +266,35 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   useEffect(() => {
     if (lastMessage?.event === "analysis_complete") {
       const { meal_id, data } = lastMessage;
-
-      const totalMacros = data.ingredients.reduce(
-        (acc, ing) => ({
-          carbs: acc.carbs + ing.carbs,
-          proteins: acc.proteins + ing.proteins,
-          fats: acc.fats + ing.fats,
-        }),
-        { carbs: 0, proteins: 0, fats: 0 }
-      );
+      const analysisData: MealAnalysis = {
+        meal_id,
+        ...data,
+      };
 
       db.transaction((tx) => {
         tx.executeSql(
           `UPDATE meals 
-           SET status = 'complete', 
-               name = ?,
-               carbs = ?, 
-               proteins = ?, 
-               fats = ? 
+           SET status = 'complete',
+           last_analysis = ?
            WHERE meal_id = ?`,
-          [
-            data.meal_name,
-            totalMacros.carbs,
-            totalMacros.proteins,
-            totalMacros.fats,
-            meal_id,
-          ],
+          [JSON.stringify(analysisData), meal_id],
           () => {
-            const calories = calculateCalories({
-              name: data.meal_name,
-              amount: 1,
-              ...totalMacros,
+            const meal = weeklyMeals.find((m) => m.meal_id === meal_id);
+            if (!meal) return;
+
+            const macros = getMealMacros({
+              ...meal,
+              last_analysis: analysisData,
             });
 
             saveFoodData({
               foodName: data.meal_name,
               mealType: "Lunch",
-              date: new Date().toISOString(),
-              energy: calories,
-              carbohydrates: totalMacros.carbs,
-              protein: totalMacros.proteins,
-              fatTotal: totalMacros.fats,
+              date: new Date(data.timestamp).toISOString(),
+              energy: macros.calories,
+              carbohydrates: macros.carbs,
+              protein: macros.proteins,
+              fatTotal: macros.fats,
             });
             refreshMeals();
           },
@@ -324,16 +317,18 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     startOfWeek.setHours(0, 0, 0, 0);
     const timestampWeek = Math.floor(startOfWeek.getTime() / 1000);
 
+    console.log("Fetching meals since:", new Date(timestampWeek * 1000));
     const mealsSinceWeek = await fetchMealsSinceTimestamp(timestampWeek);
+    console.log("Fetched meals:", mealsSinceWeek);
 
     setWeeklyMeals(mealsSinceWeek);
   };
 
   const insertMeal = async (
-    meal: Partial<StoredMeal>,
     tmpImageURI: string,
     mealId?: string
-  ) => {
+  ): Promise<void> => {
+    console.log("Inserting meal:", { tmpImageURI, mealId });
     const fileName = tmpImageURI.split("/").pop();
     const imagePath = FileSystem.documentDirectory + fileName;
     await FileSystem.copyAsync({
@@ -345,25 +340,21 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
       db.transaction((tx) => {
         tx.executeSql(
           `INSERT INTO meals (
-            name, carbs, proteins, fats, timestamp, 
-            image_uri, favorite, status, meal_id
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+            meal_id, image_uri, created_at, status
+          ) VALUES (?, ?, ?, ?);`,
           [
-            meal.name || "Analyzing...",
-            meal.carbs || 0,
-            meal.proteins || 0,
-            meal.fats || 0,
-            meal.timestamp || Math.floor(Date.now() / 1000),
-            imagePath,
-            meal.favorite ? 1 : 0,
-            mealId ? "analyzing" : "complete",
             mealId || null,
+            imagePath,
+            Math.floor(Date.now() / 1000),
+            "analyzing",
           ],
           () => {
+            console.log("Meal inserted successfully");
             refreshMeals();
             resolve();
           },
           (_, error) => {
+            console.error("Error inserting meal:", error);
             reject(error);
             return false;
           }
@@ -375,26 +366,6 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   const deleteMealById = async (id: number) => {
     await deleteMealByIdAsync(id);
     await refreshMeals();
-  };
-
-  const updateMealById = (id: number, meal: Partial<StoredMeal>) => {
-    const toUpdated = (meals: StoredMeal[]) => {
-      return meals.map((oldMeal) =>
-        oldMeal.id === id
-          ? {
-              ...oldMeal,
-              ...meal,
-              id: oldMeal.id,
-              image_uri: oldMeal.image_uri,
-              status: meal.status || oldMeal.status,
-            }
-          : oldMeal
-      );
-    };
-
-    updateMealByIdAsync(id, meal);
-    setWeeklyMeals(toUpdated(weeklyMeals));
-    return toUpdated;
   };
 
   const updateMealData = (mealId: string, data: any) => {
@@ -440,3 +411,5 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
 };
 
 export const useMealsDatabase = () => useContext(MealsDatabaseContext);
+
+export { MealStatus } from "../types";

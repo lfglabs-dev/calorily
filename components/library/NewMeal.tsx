@@ -18,7 +18,6 @@ import useResizedImage from "../../hooks/useResizedImage";
 import { useNavigation } from "@react-navigation/native";
 import useAddMeal from "../../hooks/useAddMeal";
 import UploadingMeal from "../addmeal/UploadingMeal";
-import ReviewMeal from "../addmeal/ReviewMeal";
 
 const NewMeal = ({
   prefilledMeal,
@@ -77,20 +76,7 @@ const NewMeal = ({
           <UploadingMeal
             imageBase64={resizedImage.base64}
             onComplete={(mealId) => {
-              addMeal(
-                {
-                  name: "Analyzing...",
-                  timestamp: Math.floor(Date.now() / 1000),
-                  carbs: 0,
-                  proteins: 0,
-                  fats: 0,
-                  favorite: false,
-                  status: "analyzing",
-                },
-                resizedImage.uri,
-                mealId,
-                true
-              );
+              addMeal(resizedImage.uri, mealId);
               setPopupComponent(null);
               navigation.goBack();
             }}
@@ -112,17 +98,7 @@ const NewMeal = ({
   };
 
   const handleAddMeal = () => {
-    addMeal(
-      {
-        name: mealName,
-        timestamp: Math.floor(Date.now() / 1000),
-        carbs: parseFloat(carbs),
-        fats: parseFloat(fats),
-        proteins: parseFloat(proteins),
-        favorite: false,
-      },
-      resizedImage.uri
-    );
+    addMeal(resizedImage.uri);
     console.log("Meal added:", {
       mealName,
       carbs,
@@ -219,23 +195,8 @@ const NewMeal = ({
               dynamicStyles.additionalMargin,
             ]}
             onPress={() => {
-              setPopupComponent(
-                <ReviewMeal
-                  imageURI={selectedImageURI}
-                  mealData={{
-                    name: "",
-                    ingredients: [],
-                  }}
-                  onUpdate={(updatedMeal) => {
-                    setMealName(updatedMeal.name);
-                    setCarbs(updatedMeal.carbs?.toFixed(0) || "0");
-                    setFats(updatedMeal.fats?.toFixed(0) || "0");
-                    setProteins(updatedMeal.proteins?.toFixed(0) || "0");
-                    setPopupComponent(null);
-                  }}
-                  onClose={() => setPopupComponent(null)}
-                />
-              );
+              // TODO: Implement AI analysis
+              console.log("AI analysis not implemented yet");
             }}
           >
             <Text style={dynamicStyles.buttonText}>Fill with AI</Text>

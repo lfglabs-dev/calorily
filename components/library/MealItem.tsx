@@ -16,6 +16,8 @@ import {
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
+import { StoredMeal, MealTemplate } from "../../types";
+import { useMealLibrary } from "../../hooks/useMealLibrary";
 
 const MealItem = ({
   meal,
@@ -23,16 +25,67 @@ const MealItem = ({
   removeMeal,
   handlePrefillMeal,
 }: {
-  meal: MealEntry;
-  setMeals: Dispatch<SetStateAction<MealEntry[]>>;
-  removeMeal: (meal: MealEntry) => void;
+  meal: StoredMeal;
+  setMeals: React.Dispatch<React.SetStateAction<StoredMeal[]>>;
+  removeMeal: (meal: StoredMeal) => void;
   handlePrefillMeal: (meal: MealTemplate | undefined) => void;
 }) => {
   const scheme = useColorScheme();
-  const { updateMealById } = useMealsDatabase();
+  const { toggleFavorite } = useMealLibrary();
   const animatedOpacity = useRef(
     new Animated.Value(meal.favorite ? 1 : 0)
   ).current;
+
+  // Add handlePrefill function
+  const handlePrefill = () => {
+    if (!meal.last_analysis) return;
+
+    const { meal_name, ingredients } = meal.last_analysis;
+    const totalCarbs = ingredients.reduce((sum, ing) => sum + ing.carbs, 0);
+    const totalProteins = ingredients.reduce(
+      (sum, ing) => sum + ing.proteins,
+      0
+    );
+    const totalFats = ingredients.reduce((sum, ing) => sum + ing.fats, 0);
+
+    handlePrefillMeal({
+      name: meal_name,
+      image_uri: meal.image_uri,
+      carbs: totalCarbs,
+      proteins: totalProteins,
+      fats: totalFats,
+      favorite: meal.favorite,
+    });
+  };
+
+  // Optimistically update UI before the backend catches up
+  const handleFavoriteToggle = async () => {
+    setMeals((currentMeals) => {
+      const newMeals = currentMeals.map((m) =>
+        m.id === meal.id ? { ...m, favorite: !m.favorite } : m
+      );
+      return newMeals;
+    });
+
+    try {
+      await toggleFavorite(meal);
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      setMeals((currentMeals) =>
+        currentMeals.map((m) =>
+          m.id === meal.id ? { ...m, favorite: meal.favorite } : m
+        )
+      );
+    }
+  };
+
+  const handleLongPress = () => {
+    if (meal.favorite) {
+      handleFavoriteToggle();
+    } else {
+      handleFavoriteToggle();
+    }
+  };
 
   useEffect(() => {
     Animated.timing(animatedOpacity, {
@@ -42,20 +95,12 @@ const MealItem = ({
     }).start();
   }, [meal.favorite]);
 
-  const onLongPress = () => {
-    const updatedMeal = {
-      ...meal,
-      favorite: meal.favorite === 1 ? 0 : 1,
-    };
-    const refresh = updateMealById(meal.id, updatedMeal);
-    setMeals(refresh);
-  };
-
   // JSX for rendering a single meal
   return (
     <TouchableOpacity
       style={styles.mealContainer}
-      onLongPress={onLongPress}
+      onLongPress={handleLongPress}
+      onPress={handleFavoriteToggle}
       activeOpacity={0.8}
     >
       <ImageBackground
@@ -85,17 +130,7 @@ const MealItem = ({
               color={scheme === "dark" ? "white" : "black"}
             />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => {
-              handlePrefillMeal({
-                name: meal.name,
-                carbs: meal.carbs,
-                fats: meal.fats,
-                proteins: meal.proteins,
-                image_uri: meal.image_uri,
-              });
-            }}
-          >
+          <TouchableOpacity onPress={handlePrefill}>
             <Ionicons
               name="add-circle"
               size={30}

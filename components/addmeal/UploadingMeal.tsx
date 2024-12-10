@@ -17,6 +17,12 @@ import { CustomHandle } from "./BottomSheet/CustomHandle";
 const SNAP_POINTS = ["90%"];
 const MAX_RETRIES = 3;
 
+interface UploadingMealProps {
+  imageBase64: string;
+  onComplete: (mealId: string) => void;
+  onError: (error: string) => void;
+}
+
 const UploadingMeal = ({ imageBase64, imageURI, onComplete, onError }) => {
   const { jwt } = useAuth();
   const scheme = useColorScheme();
