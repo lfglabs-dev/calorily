@@ -17,6 +17,10 @@ import {
 } from "../utils/food";
 import { StoredMeal, MealStatus, MealAnalysis } from "../types";
 import { useHealthData } from "./HealthDataContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAuth } from "./AuthContext";
+import { getLastSyncTimestamp, setLastSyncTimestamp } from "../utils/storage";
+import { AppState } from "react-native";
 
 const db = SQLite.openDatabase("meals.db");
 
@@ -232,6 +236,7 @@ type MealsDatabaseContextProps = {
     count: number
   ) => Promise<StoredMeal[]>;
   refreshMeals: () => Promise<void>;
+  syncMeals: () => Promise<void>;
 };
 
 const MealsDatabaseContext = createContext<MealsDatabaseContextProps>({
@@ -242,6 +247,7 @@ const MealsDatabaseContext = createContext<MealsDatabaseContextProps>({
   updateMealById: async () => {},
   fetchMealsInRangeAsync: async () => [],
   refreshMeals: async () => {},
+  syncMeals: async () => {},
 });
 
 type ProviderProps = {
@@ -255,6 +261,7 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   const [weeklyMeals, setWeeklyMeals] = useState<StoredMeal[]>([]);
   const { lastMessage } = useWebSocket();
   const { saveFoodData } = useHealthData();
+  const { jwt } = useAuth();
 
   useEffect(() => {
     console.log("Setting up database...");
@@ -420,6 +427,58 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     }
   };
 
+  const syncMeals = async () => {
+    try {
+      const lastSync = await getLastSyncTimestamp();
+      if (!lastSync) return;
+
+      const response = await fetch(
+        `https://api.calorily.com/meals/sync?since=${lastSync}`,
+        {
+          headers: {
+            Authorization: `Bearer ${jwt}`,
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Sync failed");
+
+      const { analyses } = await response.json();
+
+      // Update each meal that has a newer analysis
+      for (const analysis of analyses) {
+        await updateMealData(analysis.meal_id, {
+          meal_name: analysis.meal_name,
+          ingredients: analysis.ingredients,
+          timestamp: analysis.timestamp,
+        });
+      }
+
+      // Update last sync timestamp
+      await setLastSyncTimestamp(new Date().toISOString());
+    } catch (error) {
+      console.error("Error syncing meals:", error);
+    }
+  };
+
+  // Call sync when app becomes active
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
+        syncMeals();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  // Initial sync when component mounts
+  useEffect(() => {
+    syncMeals();
+  }, []);
+
   return (
     <MealsDatabaseContext.Provider
       value={{
@@ -430,6 +489,7 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
         updateMealById,
         fetchMealsInRangeAsync,
         refreshMeals,
+        syncMeals,
       }}
     >
       {children}

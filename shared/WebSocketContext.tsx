@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import { useAuth } from "./AuthContext";
+import { setLastSyncTimestamp } from "../utils/storage";
 
 type WebSocketMessage = {
   meal_id: string;
@@ -32,6 +33,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!jwt) {
       if (ws.current) {
+        setLastSyncTimestamp(new Date().toISOString());
         ws.current.close();
         ws.current = null;
       }
