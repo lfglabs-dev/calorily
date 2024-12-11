@@ -21,7 +21,12 @@ import Paywall from "./components/screens/Paywall";
 import { AuthProvider, useAuth } from "./shared/AuthContext";
 import LoginScreen from "./components/screens/LoginScreen";
 import { WebSocketProvider } from "./shared/WebSocketContext";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system";
+import { useSharing } from "./hooks/useSharing";
+import Upload from "./components/screens/Upload";
 
+const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 export default function App() {
@@ -104,42 +109,19 @@ function AppContent() {
               <HealthDataProvider>
                 <NavigationContainer theme={theme}>
                   <StatusBar style="auto" />
-                  <Tab.Navigator>
-                    <Tab.Screen
-                      name="Summary"
-                      component={Summary}
-                      options={{
-                        headerShown: false,
-                        tabBarIcon: ({ color, size }) => (
-                          <FontAwesome
-                            name="cutlery"
-                            color={color}
-                            size={size}
-                          />
-                        ),
-                      }}
+                  <SharingHandler />
+                  <Stack.Navigator>
+                    <Stack.Screen
+                      name="MainTabs"
+                      component={TabNavigator}
+                      options={{ headerShown: false }}
                     />
-                    <Tab.Screen
-                      name="Library"
-                      component={MealsLibrary}
-                      options={{
-                        headerShown: false,
-                        tabBarIcon: ({ color, size }) => (
-                          <FontAwesome name="book" color={color} size={size} />
-                        ),
-                      }}
+                    <Stack.Screen
+                      name="Upload"
+                      component={Upload}
+                      options={{ headerShown: false }}
                     />
-                    <Tab.Screen
-                      name="Settings"
-                      component={Settings}
-                      options={{
-                        headerShown: false,
-                        tabBarIcon: ({ color, size }) => (
-                          <FontAwesome name="cog" color={color} size={size} />
-                        ),
-                      }}
-                    />
-                  </Tab.Navigator>
+                  </Stack.Navigator>
                 </NavigationContainer>
               </HealthDataProvider>
             </MealsDatabaseProvider>
@@ -147,5 +129,47 @@ function AppContent() {
         </ApplicationSettingsProvider>
       )}
     </GestureHandlerRootView>
+  );
+}
+
+const SharingHandler = () => {
+  useSharing();
+  return null;
+};
+
+function TabNavigator() {
+  return (
+    <Tab.Navigator>
+      <Tab.Screen
+        name="Summary"
+        component={Summary}
+        options={{
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <FontAwesome name="cutlery" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Library"
+        component={MealsLibrary}
+        options={{
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <FontAwesome name="book" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={Settings}
+        options={{
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <FontAwesome name="cog" color={color} size={size} />
+          ),
+        }}
+      />
+    </Tab.Navigator>
   );
 }

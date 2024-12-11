@@ -16,6 +16,119 @@ import Purchases, {
   PurchasesOfferings,
 } from "react-native-purchases";
 
+const SubscriptionInfo = () => {
+  const scheme = useColorScheme();
+  const [customerInfo, setCustomerInfo] = useState<CustomerInfo>();
+  const [offerings, setOfferings] = useState<PurchasesOfferings>();
+
+  useEffect(() => {
+    const fetchSubscription = async () => {
+      setCustomerInfo(await Purchases.getCustomerInfo());
+      setOfferings(await Purchases.getOfferings());
+    };
+    fetchSubscription();
+  }, []);
+
+  const styles = StyleSheet.create({
+    row: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      borderBottomWidth: 0.5,
+      borderBottomColor: scheme === "dark" ? "#555" : "#DDD",
+      paddingVertical: 10,
+      minHeight: 44,
+    },
+    lastRow: {
+      borderBottomWidth: 0,
+    },
+    label: {
+      color: scheme === "dark" ? "#FFF" : "#000",
+      fontSize: 16,
+    },
+    value: {
+      color: scheme === "dark" ? "#AAA" : "#666",
+      fontSize: 16,
+    },
+    badge: {
+      backgroundColor: scheme === "dark" ? "#4CAF50" : "#E8F5E9",
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    badgeText: {
+      color: scheme === "dark" ? "#FFF" : "#1B5E20",
+      fontSize: 14,
+      fontWeight: "500",
+    },
+  });
+
+  if (!customerInfo) {
+    return (
+      <View style={[styles.row, styles.lastRow]}>
+        <Text style={styles.label}>Loading subscription info...</Text>
+      </View>
+    );
+  }
+
+  // Check for lifetime access or any active subscription
+  const hasActiveSubscription =
+    customerInfo.entitlements.active !== undefined &&
+    Object.keys(customerInfo.entitlements.active).length > 0;
+
+  if (hasActiveSubscription) {
+    // Find the specific subscription package
+    const subscriptionPackage = offerings?.all.default.availablePackages.find(
+      (pkg) => customerInfo.activeSubscriptions.includes(pkg.product.identifier)
+    );
+
+    if (subscriptionPackage?.product.subscriptionPeriod === undefined) {
+      // No subscription period means it's a lifetime purchase
+      return (
+        <View style={[styles.row, styles.lastRow]}>
+          <Text style={styles.label}>Subscription Status</Text>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Lifetime Access</Text>
+          </View>
+        </View>
+      );
+    }
+
+    // Regular subscription
+    const activeSubscription = customerInfo.activeSubscriptions[0];
+    const expirationDate = customerInfo?.allExpirationDates[activeSubscription];
+    const daysLeft = expirationDate
+      ? Math.ceil(
+          (new Date(expirationDate).valueOf() - Date.now().valueOf()) /
+            (1000 * 60 * 60 * 24)
+        )
+      : 0;
+
+    return (
+      <>
+        <View style={styles.row}>
+          <Text style={styles.label}>Active Plan</Text>
+          <Text style={styles.value}>{subscriptionPackage.product.title}</Text>
+        </View>
+        <View style={[styles.row, styles.lastRow]}>
+          <Text style={styles.label}>Renews in</Text>
+          <Text style={styles.value}>
+            {daysLeft} day{daysLeft !== 1 ? "s" : ""}
+          </Text>
+        </View>
+      </>
+    );
+  }
+
+  // No active subscription
+  return (
+    <View style={[styles.row, styles.lastRow]}>
+      <Text style={styles.label}>Subscription Status</Text>
+      <Text style={styles.value}>Free Plan</Text>
+    </View>
+  );
+};
+
 const Settings = () => {
   const { settings, updateSettings } = useApplicationSettings();
   const [editing, setEditing] = useState(false);
@@ -266,37 +379,9 @@ const Settings = () => {
         </View>
       </View>
 
-      <Text style={dynamicStyles.sectionTitle}>Subscription</Text>
+      <Text style={dynamicStyles.sectionTitle}>Application</Text>
       <View style={dynamicStyles.section}>
-        {customerInfo?.activeSubscriptions.map((subscriptionId, index) => {
-          const subscriptionPackage =
-            offerings?.all.default.availablePackages.find(
-              (pkg) => pkg.product.identifier === subscriptionId
-            );
-          const subscriptionName = subscriptionPackage
-            ? subscriptionPackage.product.title
-            : "Unknown Offer";
-          const expirationDate =
-            customerInfo?.allExpirationDates[subscriptionId];
-          const daysLeft = expirationDate
-            ? Math.ceil(
-                (new Date(expirationDate).valueOf() - Date.now().valueOf()) /
-                  (1000 * 60 * 60 * 24)
-              )
-            : "∞";
-
-          return (
-            <View
-              style={[dynamicStyles.settingRow, dynamicStyles.lastSettingRow]}
-              key={index}
-            >
-              <Text style={dynamicStyles.settingLabel}>{subscriptionName}</Text>
-              <Text style={dynamicStyles.settingValue}>
-                {daysLeft} day{daysLeft !== 1 ? "s" : ""} left
-              </Text>
-            </View>
-          );
-        })}
+        <SubscriptionInfo />
       </View>
     </SafeAreaView>
   );

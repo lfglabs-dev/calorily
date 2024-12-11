@@ -30,6 +30,32 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       // NSUserTrackingUsageDescription:
       //   "We use anonymized data to track app interactions and improve service delivery.",
       // PrivacyPolicyURL: "https://calorily.com/privacy",
+      LSApplicationQueriesSchemes: ["photos"],
+      CFBundleURLTypes: [
+        {
+          CFBundleURLSchemes: ["calorily"],
+        },
+      ],
+      NSPhotoLibraryUsageDescription:
+        "This app accesses your photos to analyze your meals.",
+      CFBundleDocumentTypes: [
+        {
+          CFBundleTypeName: "Images",
+          LSHandlerRank: "Alternate",
+          LSItemContentTypes: ["public.image", "public.jpeg", "public.png"],
+        },
+      ],
+      LSSupportsOpeningDocumentsInPlace: true,
+      UISupportsDocumentBrowser: true,
+      UTImportedTypeDeclarations: [
+        {
+          UTTypeIdentifier: "com.calorily.app",
+          UTTypeTagSpecification: {
+            "public.mime-type": "image/*",
+            "public.filename-extension": ["jpg", "jpeg", "png"],
+          },
+        },
+      ],
     },
   },
   android: {
