@@ -15,8 +15,7 @@ import {
   totalFats,
   getMealMacros,
 } from "../utils/food";
-import { Ingredient, StoredMeal, MealStatus, MealAnalysis } from "../types";
-import { HealthValue } from "react-native-health";
+import { StoredMeal, MealStatus, MealAnalysis } from "../types";
 import { useHealthData } from "./HealthDataContext";
 
 const db = SQLite.openDatabase("meals.db");
@@ -117,12 +116,20 @@ const fetchMealsSinceTimestamp = async (
   });
 };
 
-const deleteMealByIdAsync = async (id: number): Promise<void> => {
+const deleteMealByIdAsync = async (
+  mealIdOrId: string | number
+): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
+      // If it's a number, use id. If it's a string, use meal_id
+      const query =
+        typeof mealIdOrId === "number"
+          ? "DELETE FROM meals WHERE id = ?;"
+          : "DELETE FROM meals WHERE meal_id = ?;";
+
       tx.executeSql(
-        "DELETE FROM meals WHERE id = ?;",
-        [id],
+        query,
+        [mealIdOrId],
         () => {
           resolve();
         },
@@ -207,7 +214,7 @@ type MealsDatabaseContextProps = {
   dailyMeals: StoredMeal[];
   weeklyMeals: StoredMeal[];
   insertMeal: (tmpImageUri: string, mealId?: string) => Promise<void>;
-  deleteMealById: (id: number) => Promise<void>;
+  deleteMealById: (mealIdOrId: string | number) => Promise<void>;
   updateMealById: (id: number, updates: Partial<StoredMeal>) => Promise<void>;
   fetchMealsInRangeAsync: (
     startIndex: number,
@@ -363,8 +370,8 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     });
   };
 
-  const deleteMealById = async (id: number) => {
-    await deleteMealByIdAsync(id);
+  const deleteMealById = async (mealIdOrId: string | number) => {
+    await deleteMealByIdAsync(mealIdOrId);
     await refreshMeals();
   };
 

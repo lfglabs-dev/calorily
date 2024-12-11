@@ -5,10 +5,21 @@ import {
   ImageBackground,
   ActivityIndicator,
   useColorScheme,
+  TouchableOpacity,
 } from "react-native";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useMealsDatabase } from "../../../shared/MealsStorageContext";
 
-const LoadingMealCard = ({ imageUri }: { imageUri: string }) => {
+const LoadingMealCard = ({
+  imageUri,
+  mealId,
+}: {
+  imageUri: string;
+  mealId: string;
+}) => {
+  console.log("loading meal id:", mealId);
   const scheme = useColorScheme();
+  const { deleteMealById } = useMealsDatabase();
 
   const styles = StyleSheet.create({
     container: {
@@ -29,7 +40,17 @@ const LoadingMealCard = ({ imageUri }: { imageUri: string }) => {
     spinner: {
       transform: [{ scale: 1.5 }],
     },
+    closeButton: {
+      position: "absolute",
+      top: 10,
+      right: 10,
+      zIndex: 1,
+    },
   });
+
+  const handleDelete = () => {
+    deleteMealById(mealId);
+  };
 
   return (
     <View style={styles.container}>
@@ -39,6 +60,9 @@ const LoadingMealCard = ({ imageUri }: { imageUri: string }) => {
         imageStyle={{ borderRadius: 8 }}
         blurRadius={3}
       >
+        <TouchableOpacity style={styles.closeButton} onPress={handleDelete}>
+          <FontAwesome name="close" size={24} color="#A9A9A9" />
+        </TouchableOpacity>
         <View style={styles.overlay}>
           <ActivityIndicator
             size="large"

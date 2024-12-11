@@ -7,7 +7,6 @@ import {
   ImageBackground,
   useColorScheme,
 } from "react-native";
-import { useWebSocket } from "../../shared/WebSocketContext";
 import { useAuth } from "../../shared/AuthContext";
 import { v4 as uuidv4 } from "uuid";
 import BottomSheet from "@gorhom/bottom-sheet";
@@ -17,31 +16,12 @@ import { CustomHandle } from "./BottomSheet/CustomHandle";
 const SNAP_POINTS = ["90%"];
 const MAX_RETRIES = 3;
 
-interface UploadingMealProps {
-  imageBase64: string;
-  onComplete: (mealId: string) => void;
-  onError: (error: string) => void;
-}
-
 const UploadingMeal = ({ imageBase64, imageURI, onComplete, onError }) => {
   const { jwt } = useAuth();
   const scheme = useColorScheme();
   const [currentMealId, setCurrentMealId] = React.useState(() => uuidv4());
   const bottomSheetRef = React.useRef(null);
   const retryCount = React.useRef(0);
-
-  const checkMealExists = async (mealId) => {
-    try {
-      const response = await fetch(`https://api.calorily.com/meals/${mealId}`, {
-        headers: {
-          Authorization: `Bearer ${jwt}`,
-        },
-      });
-      return response.ok;
-    } catch {
-      return false;
-    }
-  };
 
   useEffect(() => {
     const uploadMeal = async () => {

@@ -7,13 +7,7 @@ import { CustomHandle } from "./BottomSheet/CustomHandle";
 import { IngredientItem } from "./IngredientItem";
 import { calculateCalories } from "../../utils/food";
 import LongTextInputDialog from "./FixBugDialog";
-import useResizedImage from "../../hooks/useResizedImage";
-import LoadingMeal from "./Loading";
-import Bug from "./Bug";
-import { useWebSocket } from "../../shared/WebSocketContext";
-import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "../../shared/AuthContext";
-import { MealStatus } from "../../shared/MealsStorageContext";
 import { Ingredient } from "../../types";
 
 interface ExtendedIngredient extends Ingredient {

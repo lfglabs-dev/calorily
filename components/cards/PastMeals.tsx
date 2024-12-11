@@ -36,6 +36,7 @@ const PastMeals = () => {
           .map((meal, index) =>
             meal.status === "analyzing" ? (
               <LoadingMealCard
+                mealId={meal.meal_id}
                 key={index.toString()}
                 imageUri={meal.image_uri}
               />
