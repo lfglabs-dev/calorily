@@ -1,323 +1,320 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
-  StyleSheet,
-  SafeAreaView,
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  Keyboard,
-  TouchableWithoutFeedback,
+  StyleSheet,
+  useColorScheme,
+  Alert,
   Image,
+  Keyboard,
 } from "react-native";
+import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import * as ImagePicker from "expo-image-picker";
-import { useColorScheme } from "react-native";
-import { calculateCalories } from "../../utils/food";
-import useResizedImage from "../../hooks/useResizedImage";
-import { useNavigation } from "@react-navigation/native";
-import useAddMeal from "../../hooks/useAddMeal";
 import UploadingMeal from "../addmeal/UploadingMeal";
-import { MealTemplate } from "../../types";
+import useResizedImage from "../../hooks/useResizedImage";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { calculateCalories } from "../../utils/food";
 
-const NewMeal = ({
-  prefilledMeal,
-  setPopupComponent,
-}: {
-  prefilledMeal: MealTemplate | undefined;
-  setPopupComponent: (popup: React.JSX.Element) => void;
-}) => {
+interface NewMealFormData {
+  imageUri?: string;
+  imageBase64?: string;
+  mealName?: string;
+  carbs?: number;
+  proteins?: number;
+  fats?: number;
+  carbsDisplay?: string;
+  proteinsDisplay?: string;
+  fatsDisplay?: string;
+}
+
+const NewMeal = () => {
+  const [formData, setFormData] = useState<NewMealFormData>({});
+  const [isUploading, setIsUploading] = useState(false);
+  const { insertMeal } = useMealsDatabase();
   const scheme = useColorScheme();
-  const [status, requestPermission] = ImagePicker.useCameraPermissions();
+  const resizedImage = useResizedImage(formData.imageUri);
 
-  const [mealName, setMealName] = useState("");
-  const [carbs, setCarbs] = useState("");
-  const [proteins, setProteins] = useState("");
-  const [fats, setFats] = useState("");
-  const [totalCalories, setTotalCalories] = useState(0);
-  const [selectedImageURI, setSelectedImageURI] = useState(null);
-  const resizedImage = useResizedImage(selectedImageURI);
-
-  const addMeal = useAddMeal();
-  const navigation = useNavigation();
-  const isReady = Boolean(mealName) && Boolean(selectedImageURI);
-
-  useEffect(() => {
-    if (!prefilledMeal) {
-      return;
-    }
-    setMealName(prefilledMeal.name);
-    setCarbs(prefilledMeal.carbs.toString());
-    setProteins(prefilledMeal.proteins.toString());
-    setFats(prefilledMeal.fats.toString());
-    setSelectedImageURI(prefilledMeal.image_uri);
-  }, [prefilledMeal]);
-
-  useEffect(() => {
-    const calories = calculateCalories({
-      name: mealName || "Unnamed",
-      amount: 100, // Default serving size
-      carbs: carbs ? parseFloat(carbs) : 0,
-      proteins: proteins ? parseFloat(proteins) : 0,
-      fats: fats ? parseFloat(fats) : 0,
+  const calories = React.useMemo(() => {
+    return calculateCalories({
+      name: "temp",
+      amount: 100,
+      carbs: formData.carbs || 0,
+      proteins: formData.proteins || 0,
+      fats: formData.fats || 0,
     });
-    setTotalCalories(calories);
-  }, [carbs, proteins, fats, mealName]);
+  }, [formData.carbs, formData.proteins, formData.fats]);
 
-  const handleChooseImage = async () => {
-    if (status.granted) {
-      let imageResult = await ImagePicker.launchImageLibraryAsync({
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
-        exif: false,
-        quality: 0.075,
+        quality: 0.8,
       });
 
-      if (!imageResult.canceled && imageResult.assets) {
-        setSelectedImageURI(imageResult.assets[0].uri);
-        setPopupComponent(
-          <UploadingMeal
-            imageBase64={resizedImage.base64}
-            imageURI={resizedImage.uri}
-            onComplete={(mealId) => {
-              addMeal(resizedImage.uri, mealId);
-              setPopupComponent(null);
-              navigation.goBack();
-            }}
-            onError={(error) => {
-              // Handle error
-              alert(error);
-              setPopupComponent(null);
-            }}
-          />
-        );
+      if (!result.canceled && result.assets && result.assets[0]) {
+        setFormData((prev) => ({
+          ...prev,
+          imageUri: result.assets[0].uri,
+        }));
       }
-    } else if (status.canAskAgain) {
-      await requestPermission();
-    } else {
-      alert(
-        "Calorily needs your permission to use your camera. You can allow it in your iOS settings."
-      );
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to select image");
     }
   };
 
-  const handleAddMeal = () => {
-    addMeal(resizedImage.uri);
-    console.log("Meal added:", {
-      mealName,
-      carbs,
-      proteins,
-      fats,
-      totalCalories,
-    });
-    navigation.goBack();
+  const handleInputChange = (field: keyof NewMealFormData, value: string) => {
+    const numericField = field as "carbs" | "proteins" | "fats";
+    const displayField = `${numericField}Display` as
+      | "carbsDisplay"
+      | "proteinsDisplay"
+      | "fatsDisplay";
+
+    setFormData((prev) => ({
+      ...prev,
+      [displayField]: value,
+    }));
+
+    const normalizedValue = value.replace(",", ".");
+    const numValue =
+      normalizedValue === "" ? undefined : Number(normalizedValue);
+
+    if (numValue !== undefined && (isNaN(numValue) || numValue < 0)) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      [field]: numValue,
+    }));
   };
 
-  const dynamicStyles = getDynamicStyles(scheme, isReady);
+  const handleSubmit = async () => {
+    if (!formData.imageUri || !resizedImage) {
+      Alert.alert("Error", "Please select an image first");
+      return;
+    }
 
-  return (
-    <SafeAreaView style={dynamicStyles.container}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <ScrollView style={dynamicStyles.scrollView}>
-          <View style={dynamicStyles.form}>
-            <View style={dynamicStyles.inputGroup}>
-              <Text style={dynamicStyles.label}>Meal Name:</Text>
-              <TextInput
-                style={dynamicStyles.input}
-                placeholder="Enter meal name"
-                value={mealName}
-                onChangeText={setMealName}
-              />
-            </View>
+    setIsUploading(true);
+    try {
+      await insertMeal(formData.imageUri);
+      setFormData({});
+      Alert.alert("Success", "Meal added successfully");
+    } catch (error) {
+      console.error("Error adding meal:", error);
+      Alert.alert("Error", "Failed to add meal");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
-            <View style={dynamicStyles.inputGroup}>
-              <Text style={dynamicStyles.label}>Carbs (g):</Text>
-              <TextInput
-                style={dynamicStyles.input}
-                placeholder="Enter carbs in grams"
-                value={carbs}
-                onChangeText={setCarbs}
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={dynamicStyles.inputGroup}>
-              <Text style={dynamicStyles.label}>Proteins (g):</Text>
-              <TextInput
-                style={dynamicStyles.input}
-                placeholder="Enter proteins in grams"
-                value={proteins}
-                onChangeText={setProteins}
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={dynamicStyles.inputGroup}>
-              <Text style={dynamicStyles.label}>Fats (g):</Text>
-              <TextInput
-                style={dynamicStyles.input}
-                placeholder="Enter fats in grams"
-                value={fats}
-                onChangeText={setFats}
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={dynamicStyles.inputGroupRow}>
-              <Text style={dynamicStyles.caloriesLabel}>Total Calories: </Text>
-              <Text style={dynamicStyles.calories}>{totalCalories} kcal</Text>
-            </View>
-          </View>
-        </ScrollView>
-      </TouchableWithoutFeedback>
-
-      <View style={dynamicStyles.buttonContainer}>
-        <View style={dynamicStyles.imageButtonContainer}>
-          <TouchableOpacity
-            style={
-              selectedImageURI
-                ? dynamicStyles.secondaryButtonSelected
-                : dynamicStyles.fullWidthButton
-            }
-            onPress={handleChooseImage}
-          >
-            <Text style={dynamicStyles.buttonText}>
-              {selectedImageURI ? "Change Image" : "Choose an Image"}
-            </Text>
-          </TouchableOpacity>
-          {selectedImageURI && (
-            <Image
-              source={{ uri: selectedImageURI }}
-              style={dynamicStyles.imageThumbnail}
-            />
-          )}
-        </View>
-        {selectedImageURI && (
-          <TouchableOpacity
-            style={[
-              dynamicStyles.secondaryButton,
-              dynamicStyles.additionalMargin,
-            ]}
-            onPress={() => {
-              // TODO: Implement AI analysis
-              console.log("AI analysis not implemented yet");
-            }}
-          >
-            <Text style={dynamicStyles.buttonText}>Fill with AI</Text>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          style={[dynamicStyles.button, dynamicStyles.additionalMargin]}
-          disabled={!isReady}
-          onPress={handleAddMeal}
-        >
-          <Text style={dynamicStyles.mealButtonText}>Add Meal</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+  const isFormValid = Boolean(
+    formData.imageUri &&
+      formData.mealName &&
+      formData.carbs !== undefined &&
+      formData.proteins !== undefined &&
+      formData.fats !== undefined
   );
-};
 
-const getDynamicStyles = (scheme: "dark" | "light", isReady: boolean) =>
-  StyleSheet.create({
+  const styles = StyleSheet.create({
     container: {
       flex: 1,
+      paddingBottom: 20,
+      paddingHorizontal: 20,
       backgroundColor: scheme === "dark" ? "#000" : "#F2F1F6",
     },
-    scrollView: {
+    inputContainer: {
       flex: 1,
-    },
-    form: {
-      marginHorizontal: 20,
     },
     inputGroup: {
-      marginBottom: 15,
-    },
-    inputGroupRow: {
-      flexDirection: "row",
-      alignItems: "center",
+      marginBottom: 12,
     },
     label: {
-      color: scheme === "dark" ? "#FFF" : "#000",
-      marginBottom: 5,
-      flex: 1,
+      fontSize: 14,
+      color: scheme === "dark" ? "#999" : "#666",
+      marginBottom: 4,
     },
     input: {
-      backgroundColor: scheme === "dark" ? "#333" : "#FFF",
+      height: 40,
       borderWidth: 1,
-      borderColor: scheme === "dark" ? "#555" : "#DDD",
-      padding: 10,
-      borderRadius: 5,
+      borderColor: scheme === "dark" ? "#444" : "#DDD",
+      borderRadius: 8,
+      paddingHorizontal: 10,
       color: scheme === "dark" ? "#FFF" : "#000",
-      minHeight: 40,
-    },
-    caloriesLabel: {
-      color: scheme === "dark" ? "#FFF" : "#000",
-      fontSize: 16,
-    },
-    calories: {
-      color: scheme === "dark" ? "#FFF" : "#000",
-      fontSize: 16,
-      marginLeft: 5,
+      backgroundColor: scheme === "dark" ? "#222" : "#FFF",
     },
     buttonContainer: {
-      paddingBottom: 15,
-      paddingHorizontal: 15,
-    },
-    button: {
-      backgroundColor: scheme === "dark" ? "#1A73E8" : "#007AFF",
-      padding: 15,
-      borderRadius: 10,
-      alignItems: "center",
-      opacity: isReady ? 1 : 0.5,
-      marginTop: 15,
-    },
-    buttonText: {
-      color: scheme === "dark" ? "#FFF" : "#000",
-      fontSize: 18,
-    },
-    mealButtonText: {
-      color: "#FFF",
-      fontSize: 18,
-      opacity: isReady ? 1 : 0.5,
-    },
-    fullWidthButton: {
-      backgroundColor: scheme === "dark" ? "#343438" : "#dfdfe8",
-      padding: 15,
-      borderRadius: 10,
-      alignItems: "center",
-      flex: 1,
-    },
-    secondaryButton: {
-      backgroundColor: scheme === "dark" ? "#343438" : "#dfdfe8",
-      padding: 15,
-      borderRadius: 10,
-      alignItems: "center",
-    },
-    secondaryButtonText: {
-      color: scheme === "dark" ? "#FFF" : "#5b5b5c",
-      fontSize: 18,
+      marginTop: "auto",
+      gap: 10,
     },
     imageButtonContainer: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "space-between",
+      gap: 10,
     },
-    secondaryButtonSelected: {
-      backgroundColor: scheme === "dark" ? "#5E5CE6" : "#A4A4FF",
+    selectPhotoButton: {
+      flex: 1,
+      backgroundColor: scheme === "dark" ? "#343438" : "#dfdfe8",
       padding: 15,
       borderRadius: 10,
-      flex: 1,
-      marginRight: 15,
+      alignItems: "center",
     },
     imageThumbnail: {
       width: 50,
       height: 50,
       borderRadius: 10,
     },
-    additionalMargin: {
-      marginTop: 15,
+    addButton: {
+      backgroundColor: scheme === "dark" ? "#1A73E8" : "#007AFF",
+      padding: 15,
+      borderRadius: 10,
+      alignItems: "center",
+    },
+    buttonText: {
+      color: scheme === "dark" ? "#FFF" : "#000",
+      fontSize: 17,
+      fontFamily: "System",
+    },
+    addButtonText: {
+      color: "#FFF",
+      fontSize: 17,
+      fontFamily: "System",
+      fontWeight: "600",
+    },
+    caloriesContainer: {
+      backgroundColor: scheme === "dark" ? "#1C1C1E" : "#fff",
+      borderRadius: 8,
+      padding: 15,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 0,
+    },
+    caloriesLabel: {
+      fontSize: 16,
+      color: scheme === "dark" ? "#999" : "#666",
+    },
+    calories: {
+      fontSize: 20,
+      color: scheme === "dark" ? "#FFF" : "#000",
+      fontWeight: "600",
     },
   });
+
+  if (isUploading && formData.imageUri && resizedImage) {
+    return (
+      <UploadingMeal
+        imageBase64={resizedImage.base64}
+        imageURI={formData.imageUri}
+        onComplete={(mealId) => {
+          setIsUploading(false);
+          setFormData({});
+        }}
+        onError={(error) => {
+          setIsUploading(false);
+          Alert.alert("Error", error.toString());
+        }}
+      />
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.inputContainer}>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Meal Name</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.mealName || ""}
+            onChangeText={(value) =>
+              setFormData((prev) => ({ ...prev, mealName: value }))
+            }
+            placeholder="Enter meal name"
+            placeholderTextColor={scheme === "dark" ? "#666" : "#999"}
+            returnKeyType="done"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Carbs (g)</Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="numeric"
+            value={formData.carbsDisplay || formData.carbs?.toString() || ""}
+            onChangeText={(value) => handleInputChange("carbs", value)}
+            placeholder="0"
+            placeholderTextColor={scheme === "dark" ? "#666" : "#999"}
+            returnKeyType="done"
+            onSubmitEditing={Keyboard.dismiss}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Proteins (g)</Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="numeric"
+            value={
+              formData.proteinsDisplay || formData.proteins?.toString() || ""
+            }
+            onChangeText={(value) => handleInputChange("proteins", value)}
+            placeholder="0"
+            placeholderTextColor={scheme === "dark" ? "#666" : "#999"}
+            returnKeyType="done"
+            onSubmitEditing={Keyboard.dismiss}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Fats (g)</Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="numeric"
+            value={formData.fatsDisplay || formData.fats?.toString() || ""}
+            onChangeText={(value) => handleInputChange("fats", value)}
+            placeholder="0"
+            placeholderTextColor={scheme === "dark" ? "#666" : "#999"}
+            returnKeyType="done"
+            onSubmitEditing={Keyboard.dismiss}
+          />
+        </View>
+      </View>
+
+      <View style={styles.buttonContainer}>
+        <View style={styles.caloriesContainer}>
+          <Text style={styles.caloriesLabel}>Total Calories</Text>
+          <Text style={styles.calories}>{calories} kcal</Text>
+        </View>
+
+        <View style={styles.imageButtonContainer}>
+          <TouchableOpacity
+            style={styles.selectPhotoButton}
+            onPress={pickImage}
+          >
+            <Text style={styles.buttonText}>
+              {formData.imageUri ? "Change Photo" : "Select Photo"}
+            </Text>
+          </TouchableOpacity>
+
+          {formData.imageUri && (
+            <Image
+              source={{ uri: formData.imageUri }}
+              style={styles.imageThumbnail}
+            />
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={[styles.addButton, !isFormValid && { opacity: 0.5 }]}
+          onPress={handleSubmit}
+          disabled={!isFormValid}
+        >
+          <Text style={styles.addButtonText}>Add Meal</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
 export default NewMeal;

@@ -254,6 +254,56 @@ type ProviderProps = {
   children: ReactNode;
 };
 
+const cleanupOldMeals = async () => {
+  const oneMonthAgo = Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60; // 30 days in seconds
+
+  return new Promise<void>((resolve, reject) => {
+    db.transaction(async (tx) => {
+      // First get the meals to delete so we can remove their images
+      tx.executeSql(
+        "SELECT meal_id, image_uri FROM meals WHERE created_at < ? AND favorite = 0;",
+        [oneMonthAgo],
+        async (_, result) => {
+          const mealsToDelete = result.rows._array;
+
+          // Delete image files
+          for (const meal of mealsToDelete) {
+            try {
+              const exists = await FileSystem.getInfoAsync(meal.image_uri);
+              if (exists.exists) {
+                await FileSystem.deleteAsync(meal.image_uri);
+              }
+            } catch (error) {
+              console.warn(
+                `Failed to delete image for meal ${meal.meal_id}:`,
+                error
+              );
+            }
+          }
+
+          // Then delete the database entries
+          tx.executeSql(
+            "DELETE FROM meals WHERE created_at < ? AND favorite = 0;",
+            [oneMonthAgo],
+            (_, deleteResult) => {
+              console.log(`Cleaned up ${deleteResult.rowsAffected} old meals`);
+              resolve();
+            },
+            (_, error) => {
+              reject(error);
+              return false;
+            }
+          );
+        },
+        (_, error) => {
+          reject(error);
+          return false;
+        }
+      );
+    });
+  });
+};
+
 export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   children,
 }) => {
@@ -477,6 +527,49 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   // Initial sync when component mounts
   useEffect(() => {
     syncMeals();
+  }, []);
+
+  const addMeal = async (imageUri: string, mealId: string) => {
+    try {
+      // Copy image to permanent storage
+      const filename = `${mealId}.jpg`;
+      const permanentUri = `${FileSystem.documentDirectory}meals/${filename}`;
+
+      // Ensure meals directory exists
+      await FileSystem.makeDirectoryAsync(
+        `${FileSystem.documentDirectory}meals`,
+        {
+          intermediates: true,
+        }
+      );
+
+      // Copy to permanent location
+      await FileSystem.copyAsync({
+        from: imageUri,
+        to: permanentUri,
+      });
+
+      // Store meal with permanent URI
+      const meal: StoredMeal = {
+        meal_id: mealId,
+        image_uri: permanentUri,
+        // ... other meal properties
+      };
+
+      await insertMeal(meal);
+    } catch (error) {
+      console.error("Error adding meal:", error);
+    }
+  };
+
+  // Run cleanup on app launch and daily
+  useEffect(() => {
+    cleanupOldMeals();
+
+    // Set up daily cleanup
+    const cleanup = setInterval(cleanupOldMeals, 24 * 60 * 60 * 1000);
+
+    return () => clearInterval(cleanup);
   }, []);
 
   return (
