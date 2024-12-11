@@ -24,9 +24,13 @@ const PastMeals = ({
   );
 
   useEffect(() => {
-    if (dailyMeals.length !== 0)
-      sliderRef.current.setPage(dailyMeals.length - 1);
-  }, [dailyMeals]);
+    if (dailyMeals.length > 0) {
+      // Small delay to ensure the new meal is rendered
+      setTimeout(() => {
+        sliderRef.current?.setPage(dailyMeals.length - 1);
+      }, 100);
+    }
+  }, [dailyMeals.length]); // Only trigger when meals count changes
 
   const carouselStyles = StyleSheet.create({
     pagerView: {
@@ -41,6 +45,9 @@ const PastMeals = ({
       ref={sliderRef}
       style={carouselStyles.pagerView}
       initialPage={initialPage}
+      overdrag={true}
+      transitionStyle="scroll" // Smooth scrolling animation
+      animationEnabled={true}
     >
       {dailyMeals.length > 0 ? (
         sortedMeals.map((meal, index) =>
