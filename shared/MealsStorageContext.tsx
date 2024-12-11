@@ -20,70 +20,52 @@ import { useHealthData } from "./HealthDataContext";
 
 const db = SQLite.openDatabase("meals.db");
 
-const DB_VERSION = 3; // Increment from 2 to 3
+const DB_VERSION = 4; // Increment for new schema with error_message
 
 const setupDatabaseAsync = async (): Promise<void> => {
+  console.log("Starting database setup...");
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
-      // First create version table if it doesn't exist
-      tx.executeSql(
-        "CREATE TABLE IF NOT EXISTS version (version INTEGER PRIMARY KEY)",
-        [],
-        () => {
-          // Then create meals table if it doesn't exist
-          tx.executeSql(
-            `CREATE TABLE IF NOT EXISTS meals (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              meal_id TEXT UNIQUE,
-              image_uri TEXT NOT NULL,
-              favorite BOOLEAN NOT NULL DEFAULT 0,
-              status TEXT NOT NULL DEFAULT 'analyzing',
-              created_at INTEGER NOT NULL,
-              last_analysis TEXT,
-              some_new_field TEXT,
-              another_field INTEGER DEFAULT 0
-            );`,
-            [],
-            () => {
-              // Check version and update if needed
-              tx.executeSql(
-                "SELECT version FROM version LIMIT 1",
-                [],
-                (_, result) => {
-                  const currentVersion =
-                    result.rows.length > 0 ? result.rows.item(0).version : 0;
-                  if (currentVersion < DB_VERSION) {
-                    // After all updates, update the version number
-                    tx.executeSql(
-                      "INSERT OR REPLACE INTO version (version) VALUES (?)",
-                      [DB_VERSION],
-                      () => resolve(),
-                      (_, error) => {
-                        reject(error);
-                        return false;
-                      }
-                    );
-                  } else {
+      console.log("Dropping old version table...");
+      tx.executeSql("DROP TABLE IF EXISTS version;", [], () => {
+        console.log("Creating version table...");
+        tx.executeSql(
+          "CREATE TABLE IF NOT EXISTS version (id INTEGER PRIMARY KEY CHECK (id = 1), version INTEGER)",
+          [],
+          () => {
+            console.log("Version table created");
+            tx.executeSql(
+              `CREATE TABLE IF NOT EXISTS meals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                meal_id TEXT,
+                image_uri TEXT NOT NULL,
+                favorite INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'analyzing',
+                created_at INTEGER NOT NULL,
+                last_analysis TEXT,
+                error_message TEXT
+              );`,
+              [],
+              () => {
+                console.log("Meals table created");
+                tx.executeSql(
+                  "INSERT OR REPLACE INTO version (id, version) VALUES (1, ?)",
+                  [DB_VERSION],
+                  () => {
+                    console.log("Version updated to", DB_VERSION);
                     resolve();
+                  },
+                  (_, error) => {
+                    console.error("Error updating version:", error);
+                    reject(error);
+                    return false;
                   }
-                },
-                (_, error) => {
-                  reject(error);
-                  return false;
-                }
-              );
-            },
-            (_, error) => {
-              reject(error);
-              return false;
-            }
-          );
-        },
-        (_, error) => {
-          reject(error);
-          return false;
-        }
-      );
+                );
+              }
+            );
+          }
+        );
+      });
     });
   });
 };
@@ -154,7 +136,7 @@ const deleteMealByIdAsync = async (
   });
 };
 
-const updateMealById = async (
+const updateMealByIdAsync = async (
   id: number,
   updates: Partial<StoredMeal>
 ): Promise<void> => {
@@ -162,7 +144,12 @@ const updateMealById = async (
     db.transaction((tx) => {
       const fields = Object.keys(updates);
       const setClause = fields.map((field) => `${field} = ?`).join(", ");
-      const values = fields.map((field) => updates[field]);
+      const values = fields.map((field) => {
+        // Stringify objects like last_analysis
+        return typeof updates[field] === "object"
+          ? JSON.stringify(updates[field])
+          : updates[field];
+      });
       const query = `UPDATE meals SET ${setClause} WHERE id = ?`;
       const params = [...values, id];
 
@@ -295,48 +282,36 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   }, [weeklyMeals]);
 
   useEffect(() => {
-    if (lastMessage?.event === "analysis_complete") {
-      const { meal_id, data } = lastMessage;
-      const analysisData: MealAnalysis = {
-        meal_id,
-        ...data,
-      };
-
-      db.transaction((tx) => {
-        tx.executeSql(
-          `UPDATE meals 
-           SET status = 'complete',
-           last_analysis = ?
-           WHERE meal_id = ?`,
-          [JSON.stringify(analysisData), meal_id],
-          () => {
-            const meal = weeklyMeals.find((m) => m.meal_id === meal_id);
-            if (!meal) return;
-
-            const macros = getMealMacros({
-              ...meal,
-              last_analysis: analysisData,
-            });
-
-            saveFoodData({
-              foodName: data.meal_name,
-              mealType: "Lunch",
-              date: new Date(data.timestamp).toISOString(),
-              energy: macros.calories,
-              carbohydrates: macros.carbs,
-              protein: macros.proteins,
-              fatTotal: macros.fats,
-            });
-            refreshMeals();
-          },
-          (_, error) => {
-            console.error("Error updating meal:", error);
-            return false;
-          }
-        );
-      });
+    if (lastMessage && lastMessage.meal_id) {
+      if (lastMessage.event === "analysis_failed") {
+        db.transaction((tx) => {
+          tx.executeSql(
+            `UPDATE meals 
+             SET status = 'failed',
+             error_message = ?
+             WHERE meal_id = ?`,
+            [lastMessage.error, lastMessage.meal_id],
+            () => {
+              setWeeklyMeals((prevMeals) => {
+                return prevMeals.map((meal) => {
+                  if (meal.meal_id === lastMessage.meal_id) {
+                    return {
+                      ...meal,
+                      status: "failed",
+                      error_message: lastMessage.error,
+                    };
+                  }
+                  return meal;
+                });
+              });
+            }
+          );
+        });
+      } else if (lastMessage.event === "analysis_complete") {
+        updateMealData(lastMessage.meal_id, lastMessage.data);
+      }
     }
-  }, [lastMessage, saveFoodData]);
+  }, [lastMessage]);
 
   const refreshMeals = async () => {
     const startOfWeek = new Date();
@@ -400,29 +375,50 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   };
 
   const updateMealData = (mealId: string, data: any) => {
-    setWeeklyMeals((prevMeals) => {
-      return prevMeals.map((meal) => {
-        if (meal.meal_id === mealId) {
-          return {
-            ...meal,
-            name: data.meal_name,
-            ingredients: data.ingredients,
-            carbs: totalCarbs(data.ingredients),
-            proteins: totalProteins(data.ingredients),
-            fats: totalFats(data.ingredients),
-            status: "complete" as MealStatus,
-          };
+    db.transaction((tx) => {
+      const analysisData: MealAnalysis = {
+        meal_id: mealId,
+        meal_name: data.meal_name,
+        ingredients: data.ingredients,
+        timestamp: data.timestamp,
+      };
+
+      tx.executeSql(
+        `UPDATE meals 
+         SET status = 'complete',
+         last_analysis = ?
+         WHERE meal_id = ?`,
+        [JSON.stringify(analysisData), mealId],
+        () => {
+          setWeeklyMeals((prevMeals) => {
+            return prevMeals.map((meal) => {
+              if (meal.meal_id === mealId) {
+                return {
+                  ...meal,
+                  status: "complete",
+                  last_analysis: analysisData,
+                };
+              }
+              return meal;
+            });
+          });
+        },
+        (_, error) => {
+          console.error("Error updating meal in DB:", error);
+          return false;
         }
-        return meal;
-      });
+      );
     });
   };
 
-  useEffect(() => {
-    if (lastMessage && lastMessage.meal_id) {
-      updateMealData(lastMessage.meal_id, lastMessage.data);
+  const updateMealById = async (id: number, updates: Partial<StoredMeal>) => {
+    try {
+      await updateMealByIdAsync(id, updates);
+      await refreshMeals();
+    } catch (error) {
+      console.error("Error updating meal:", error);
     }
-  }, [lastMessage]);
+  };
 
   return (
     <MealsDatabaseContext.Provider

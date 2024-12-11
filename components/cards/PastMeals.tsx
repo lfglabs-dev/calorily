@@ -1,10 +1,11 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
 import PagerView from "react-native-pager-view";
 import { StyleSheet } from "react-native";
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import PastMealCard from "./pastmeals/PastMealCard";
 import EmptyMealCard from "./pastmeals/NoMealCard";
 import LoadingMealCard from "./pastmeals/LoadingMealCard";
+import FailedMealCard from "./pastmeals/FailedMealCard";
 import { StoredMeal } from "../../types";
 
 const PastMeals = ({
@@ -15,6 +16,12 @@ const PastMeals = ({
   const { dailyMeals } = useMealsDatabase();
   const sliderRef = useRef<PagerView>(null);
   const initialPage = Math.max(0, dailyMeals.length - 1);
+
+  // Memoize meals to prevent unnecessary re-renders
+  const sortedMeals = useMemo(
+    () => dailyMeals.slice().sort((a, b) => a.created_at - b.created_at),
+    [dailyMeals]
+  );
 
   useEffect(() => {
     if (dailyMeals.length !== 0)
@@ -36,23 +43,28 @@ const PastMeals = ({
       initialPage={initialPage}
     >
       {dailyMeals.length > 0 ? (
-        dailyMeals
-          .sort((a, b) => a.created_at - b.created_at)
-          .map((meal, index) =>
-            meal.status === "analyzing" ? (
-              <LoadingMealCard
-                mealId={meal.meal_id}
-                key={index.toString()}
-                imageUri={meal.image_uri}
-              />
-            ) : (
-              <PastMealCard
-                key={index.toString()}
-                meal={meal}
-                onPress={() => onMealPress(meal)}
-              />
-            )
+        sortedMeals.map((meal, index) =>
+          meal.status === "analyzing" ? (
+            <LoadingMealCard
+              mealId={meal.meal_id}
+              key={index.toString()}
+              imageUri={meal.image_uri}
+            />
+          ) : meal.status === "failed" ? (
+            <FailedMealCard
+              key={index.toString()}
+              mealId={meal.meal_id}
+              imageUri={meal.image_uri}
+              errorMessage={meal.error_message || "Unknown error occurred"}
+            />
+          ) : (
+            <PastMealCard
+              key={index.toString()}
+              meal={meal}
+              onPress={() => onMealPress(meal)}
+            />
           )
+        )
       ) : (
         <EmptyMealCard key={0} />
       )}

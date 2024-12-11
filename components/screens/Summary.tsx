@@ -115,16 +115,11 @@ const Summary = ({ navigation }) => {
       {reviewingMeal && (
         <ReviewMeal
           imageURI={reviewingMeal.image_uri}
-          mealData={{
-            name: reviewingMeal.last_analysis?.meal_name,
-            ingredients: reviewingMeal.last_analysis?.ingredients || [],
-          }}
+          mealData={reviewingMeal}
           onUpdate={(updatedData) => {
             updateMealById(reviewingMeal.id, {
-              last_analysis: {
-                ...reviewingMeal.last_analysis,
-                ...updatedData,
-              },
+              status: updatedData.status,
+              last_analysis: updatedData.last_analysis,
             });
             setReviewingMeal(null);
           }}

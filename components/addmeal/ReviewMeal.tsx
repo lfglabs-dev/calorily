@@ -8,18 +8,29 @@ import { IngredientItem } from "./IngredientItem";
 import { calculateCalories } from "../../utils/food";
 import LongTextInputDialog from "./FixBugDialog";
 import { useAuth } from "../../shared/AuthContext";
-import Ionicons from "react-native-vector-icons/Ionicons";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { StoredMeal } from "../../types";
 
 const SNAP_POINTS = ["90%"];
 
-const ReviewMeal = ({ imageURI, mealData, onUpdate, onClose }) => {
+const ReviewMeal = ({
+  imageURI,
+  mealData,
+  onUpdate,
+  onClose,
+}: {
+  imageURI: string;
+  mealData: StoredMeal;
+  onUpdate: (data: any) => void;
+  onClose: () => void;
+}) => {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const colorScheme = useColorScheme();
   const [dialogVisible, setDialogVisible] = useState(false);
   const { jwt } = useAuth();
 
   const ingredients =
-    mealData?.ingredients?.map((item) => ({
+    mealData?.last_analysis?.ingredients?.map((item) => ({
       ...item,
       calories: calculateCalories(item),
       selected: true,
@@ -27,25 +38,43 @@ const ReviewMeal = ({ imageURI, mealData, onUpdate, onClose }) => {
 
   const handleFeedback = async (feedback: string) => {
     try {
-      console.log("Submitting feedback for meal:", mealData.meal_id);
+      const meal_id = mealData.meal_id;
+      const requestBody = {
+        meal_id,
+        feedback,
+      };
+      console.log("Sending feedback request:", {
+        url: "https://api.calorily.com/meals/feedback",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${jwt.slice(0, 10)}...`, // Log partial JWT for security
+        },
+        body: requestBody,
+      });
+
+      // Optimistically update and close
+      onUpdate({
+        status: "analyzing",
+        last_analysis: null,
+      });
+      setDialogVisible(false);
+      onClose();
+
+      // Send request in background
       const response = await fetch("https://api.calorily.com/meals/feedback", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${jwt}`,
         },
-        body: JSON.stringify({
-          meal_id: mealData.last_analysis.meal_id,
-          feedback,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to submit feedback");
+        const responseData = await response.json();
+        throw new Error(responseData.error || "Failed to submit feedback");
       }
-
-      setDialogVisible(false);
     } catch (error) {
       console.error("Feedback error:", error);
       alert(error.message);
@@ -63,7 +92,9 @@ const ReviewMeal = ({ imageURI, mealData, onUpdate, onClose }) => {
     >
       <View style={styles(colorScheme).contentContainer}>
         <View style={styles(colorScheme).titleContainer}>
-          <Text style={styles(colorScheme).resultTitle}>{mealData.name}</Text>
+          <Text style={styles(colorScheme).resultTitle}>
+            {mealData.last_analysis?.meal_name || "Unnamed Meal"}
+          </Text>
           <Text style={styles(colorScheme).calories}>
             {Math.round(
               ingredients.reduce(

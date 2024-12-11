@@ -21,13 +21,10 @@ export interface StoredMeal {
   status: MealStatus;
   created_at: number;
   last_analysis?: MealAnalysis;
-  name?: string;
-  carbs?: number;
-  proteins?: number;
-  fats?: number;
+  error_message?: string;
 }
 
-export type MealStatus = "analyzing" | "complete" | "error";
+export type MealStatus = "analyzing" | "complete" | "error" | "failed";
 
 export interface MealTemplate {
   id?: number;

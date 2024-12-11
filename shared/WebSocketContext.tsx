@@ -9,18 +9,9 @@ import { useAuth } from "./AuthContext";
 
 type WebSocketMessage = {
   meal_id: string;
-  event: "analysis_complete";
-  data: {
-    meal_name: string;
-    ingredients: {
-      name: string;
-      amount: number;
-      carbs: number;
-      proteins: number;
-      fats: number;
-    }[];
-    timestamp: string;
-  };
+  event: "analysis_complete" | "analysis_failed";
+  data?: any;
+  error?: string;
 };
 
 interface WebSocketContextType {
