@@ -12,6 +12,8 @@ import PastMeals from "../cards/PastMeals";
 import useAddMeal from "../../hooks/useAddMeal";
 import UploadingMeal from "../addmeal/UploadingMeal";
 import useResizedImage from "../../hooks/useResizedImage";
+import ReviewMeal from "../addmeal/ReviewMeal";
+import { useMealsDatabase } from "../../shared/MealsStorageContext";
 
 const Summary = ({ navigation }) => {
   const scheme = useColorScheme();
@@ -19,6 +21,8 @@ const Summary = ({ navigation }) => {
   const addMeal = useAddMeal();
   const [imageURI, setImageURI] = useState<string | undefined>();
   const resizedImage = useResizedImage(imageURI);
+  const [reviewingMeal, setReviewingMeal] = useState(null);
+  const { updateMealById } = useMealsDatabase();
 
   const dynamicStyles = StyleSheet.create({
     container: {
@@ -83,7 +87,7 @@ const Summary = ({ navigation }) => {
     <View style={dynamicStyles.container}>
       <Text style={dynamicStyles.title}>Summary</Text>
       <CaloriesGoalCard />
-      <PastMeals />
+      <PastMeals onMealPress={(meal) => setReviewingMeal(meal)} />
       <TouchableOpacity
         style={dynamicStyles.secondaryButton}
         onPress={() => {}}
@@ -107,6 +111,26 @@ const Summary = ({ navigation }) => {
           }}
         />
       ) : null}
+
+      {reviewingMeal && (
+        <ReviewMeal
+          imageURI={reviewingMeal.image_uri}
+          mealData={{
+            name: reviewingMeal.last_analysis?.meal_name,
+            ingredients: reviewingMeal.last_analysis?.ingredients || [],
+          }}
+          onUpdate={(updatedData) => {
+            updateMealById(reviewingMeal.id, {
+              last_analysis: {
+                ...reviewingMeal.last_analysis,
+                ...updatedData,
+              },
+            });
+            setReviewingMeal(null);
+          }}
+          onClose={() => setReviewingMeal(null)}
+        />
+      )}
     </View>
   );
 };

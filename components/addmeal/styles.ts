@@ -94,4 +94,51 @@ export const styles = (colorScheme: StylesProps["colorScheme"]) =>
       color: colorScheme === "dark" ? "#FFF" : "#000",
       fontSize: 18,
     },
+    titleContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 10,
+      gap: 15,
+    },
+    calories: {
+      fontSize: 18,
+      color: colorScheme === "dark" ? "#FFF" : "#000",
+      opacity: 0.95,
+    },
+    macroContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor:
+        colorScheme === "dark"
+          ? "rgba(0, 0, 0, 0.5)"
+          : "rgba(255, 255, 255, 0.5)",
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 15,
+      opacity: 0.8,
+      marginBottom: 15,
+      alignSelf: "center",
+    },
+    macroGroup: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 15,
+    },
+    macroItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    macroText: {
+      color: colorScheme === "dark" ? "#FFF" : "#000",
+      fontSize: 16,
+      marginLeft: 6,
+      opacity: 0.8,
+    },
+    macroIcon: {
+      opacity: 0.8,
+      color: colorScheme === "dark" ? "#FFF" : "#000",
+    },
   });

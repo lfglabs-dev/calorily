@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { View, Text, TouchableOpacity, useColorScheme } from "react-native";
 import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { styles } from "./styles";
@@ -8,79 +8,48 @@ import { IngredientItem } from "./IngredientItem";
 import { calculateCalories } from "../../utils/food";
 import LongTextInputDialog from "./FixBugDialog";
 import { useAuth } from "../../shared/AuthContext";
-import { Ingredient } from "../../types";
-
-interface ExtendedIngredient extends Ingredient {
-  calories: number;
-  selected: boolean;
-}
+import Ionicons from "react-native-vector-icons/Ionicons";
 
 const SNAP_POINTS = ["90%"];
 
 const ReviewMeal = ({ imageURI, mealData, onUpdate, onClose }) => {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const colorScheme = useColorScheme();
-  const [name, setName] = useState<string>(mealData?.name || "");
-  const [ingredients, setIngredients] = useState<ExtendedIngredient[]>(
-    mealData?.ingredients || []
-  );
-  const [lastResponse, setLastResponse] =
-    useState<ExtendedIngredient[]>(mealData);
   const [dialogVisible, setDialogVisible] = useState(false);
   const { jwt } = useAuth();
 
-  const handleFindFix = async (remark) => {
+  const ingredients =
+    mealData?.ingredients?.map((item) => ({
+      ...item,
+      calories: calculateCalories(item),
+      selected: true,
+    })) || [];
+
+  const handleFeedback = async (feedback: string) => {
     try {
-      const response = await fetch(
-        "https://api.calorily.com/improve_food_data",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            remark,
-            prev_response: lastResponse,
-            b64_img: imageURI,
-          }),
-        }
-      );
-      const data = await response.json();
-      setLastResponse(data);
-      if (!data || data.error) {
-        throw new Error(data.error || "Unknown error");
+      console.log("Submitting feedback for meal:", mealData.meal_id);
+      const response = await fetch("https://api.calorily.com/meals/feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${jwt}`,
+        },
+        body: JSON.stringify({
+          meal_id: mealData.last_analysis.meal_id,
+          feedback,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to submit feedback");
       }
-      setName(data.name);
-      setIngredients(
-        data.ingredients.map((item) => ({
-          ...item,
-          calories: calculateCalories(item),
-          selected: true,
-        }))
-      );
+
+      setDialogVisible(false);
     } catch (error) {
-      console.error("Fix error:", error);
+      console.error("Feedback error:", error);
       alert(error.message);
     }
-    setDialogVisible(false);
-  };
-
-  const handleUpdateMeal = () => {
-    onUpdate({
-      name,
-      ingredients: ingredients.filter((i) => i.selected),
-    });
-    bottomSheetRef.current.close();
-  };
-
-  const toggleIngredientSelection = (index: number) => {
-    const newIngredients = [...ingredients];
-    newIngredients[index].selected = !newIngredients[index].selected;
-    setIngredients(newIngredients);
-  };
-
-  const openComment = () => {
-    setDialogVisible(true);
   };
 
   return (
@@ -93,7 +62,65 @@ const ReviewMeal = ({ imageURI, mealData, onUpdate, onClose }) => {
       onClose={onClose}
     >
       <View style={styles(colorScheme).contentContainer}>
-        <Text style={styles(colorScheme).resultTitle}>{name}</Text>
+        <View style={styles(colorScheme).titleContainer}>
+          <Text style={styles(colorScheme).resultTitle}>{mealData.name}</Text>
+          <Text style={styles(colorScheme).calories}>
+            {Math.round(
+              ingredients.reduce(
+                (sum, item) => sum + calculateCalories(item),
+                0
+              )
+            )}{" "}
+            kCal
+          </Text>
+        </View>
+
+        <View style={styles(colorScheme).macroContainer}>
+          <View style={styles(colorScheme).macroGroup}>
+            <View style={styles(colorScheme).macroItem}>
+              <Ionicons
+                name="egg"
+                size={20}
+                style={styles(colorScheme).macroIcon}
+              />
+              <Text style={styles(colorScheme).macroText}>
+                {Math.round(
+                  ingredients.reduce((sum, item) => sum + item.proteins, 0)
+                )}
+                g
+              </Text>
+            </View>
+
+            <View style={styles(colorScheme).macroItem}>
+              <Ionicons
+                name="pizza"
+                size={20}
+                style={styles(colorScheme).macroIcon}
+              />
+              <Text style={styles(colorScheme).macroText}>
+                {Math.round(
+                  ingredients.reduce((sum, item) => sum + item.fats, 0)
+                )}
+                g
+              </Text>
+            </View>
+
+            <View style={styles(colorScheme).macroItem}>
+              <Ionicons
+                name="ice-cream"
+                size={20}
+                style={styles(colorScheme).macroIcon}
+              />
+              <Text style={styles(colorScheme).macroText}>
+                {Math.round(
+                  ingredients.reduce((sum, item) => sum + item.carbs, 0)
+                )}
+                g
+              </Text>
+            </View>
+          </View>
+        </View>
+
         <BottomSheetFlatList
           data={ingredients}
           renderItem={({ item, index }) => (
@@ -101,28 +128,31 @@ const ReviewMeal = ({ imageURI, mealData, onUpdate, onClose }) => {
               item={item}
               index={index}
               colorScheme={colorScheme}
-              toggleSelection={toggleIngredientSelection}
+              toggleSelection={() => {}}
             />
           )}
           keyExtractor={(_item, index) => index.toString()}
         />
+
         <TouchableOpacity
           style={styles(colorScheme).secondaryButton}
-          onPress={openComment}
+          onPress={() => setDialogVisible(true)}
         >
           <Text style={styles(colorScheme).secondaryButtonText}>Fix a bug</Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={styles(colorScheme).mainButton}
-          onPress={handleUpdateMeal}
+          onPress={() => bottomSheetRef.current?.close()}
         >
-          <Text style={styles(colorScheme).mainButtonText}>Update Meal</Text>
+          <Text style={styles(colorScheme).mainButtonText}>Close</Text>
         </TouchableOpacity>
       </View>
+
       <LongTextInputDialog
         visible={dialogVisible}
         onClose={() => setDialogVisible(false)}
-        onSubmit={handleFindFix}
+        onSubmit={handleFeedback}
       />
     </BottomSheet>
   );

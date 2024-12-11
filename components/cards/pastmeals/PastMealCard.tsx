@@ -11,8 +11,16 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMealsDatabase } from "../../../shared/MealsStorageContext";
 import { getMealMacros } from "../../../utils/food";
 import { StoredMeal } from "../../../types";
+import ReviewMeal from "../../addmeal/ReviewMeal";
+import { useState } from "react";
 
-const PastMealCard = ({ meal }: { meal: StoredMeal }) => {
+const PastMealCard = ({
+  meal,
+  onPress,
+}: {
+  meal: StoredMeal;
+  onPress: (meal: StoredMeal) => void;
+}) => {
   const scheme = useColorScheme();
   const { deleteMealById } = useMealsDatabase();
   const macros = getMealMacros(meal);
@@ -133,7 +141,10 @@ const PastMealCard = ({ meal }: { meal: StoredMeal }) => {
   };
 
   const handleCardPress = () => {
-    console.log("card clicked");
+    if (meal.status === "complete") {
+      console.log(onPress);
+      onPress(meal);
+    }
   };
 
   return (

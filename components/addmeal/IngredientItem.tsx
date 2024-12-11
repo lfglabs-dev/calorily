@@ -1,6 +1,12 @@
 import React from "react";
 import { View, Text } from "react-native";
 import { styles } from "./styles";
+import { Ingredient } from "../../types";
+
+interface ExtendedIngredient extends Ingredient {
+  calories: number;
+  selected: boolean;
+}
 
 type IngredientItemProps = {
   item: ExtendedIngredient;
@@ -39,23 +45,27 @@ function getCaloriesColor(scheme, calories) {
 export const IngredientItem: React.FC<IngredientItemProps> = ({
   item,
   colorScheme,
-}) => (
-  <View style={styles(colorScheme).ingredientItem}>
-    <Text
-      style={styles(colorScheme).ingredientText}
-      numberOfLines={1}
-      ellipsizeMode="tail"
-    >
-      {item.name}
-    </Text>
-    <Text
-      style={{
-        color: getCaloriesColor(colorScheme, item.calories),
-        fontWeight: "bold",
-        fontSize: 14,
-      }}
-    >
-      {item.calories.toFixed(1)} kCal
-    </Text>
-  </View>
-);
+}) => {
+  const calories = item.calories || 0; // Provide default value
+
+  return (
+    <View style={styles(colorScheme).ingredientItem}>
+      <Text
+        style={styles(colorScheme).ingredientText}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {item.name}
+      </Text>
+      <Text
+        style={{
+          color: getCaloriesColor(colorScheme, calories),
+          fontWeight: "bold",
+          fontSize: 14,
+        }}
+      >
+        {calories.toFixed(1)} kCal
+      </Text>
+    </View>
+  );
+};

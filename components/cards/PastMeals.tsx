@@ -5,8 +5,13 @@ import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import PastMealCard from "./pastmeals/PastMealCard";
 import EmptyMealCard from "./pastmeals/NoMealCard";
 import LoadingMealCard from "./pastmeals/LoadingMealCard";
+import { StoredMeal } from "../../types";
 
-const PastMeals = () => {
+const PastMeals = ({
+  onMealPress,
+}: {
+  onMealPress: (meal: StoredMeal) => void;
+}) => {
   const { dailyMeals } = useMealsDatabase();
   const sliderRef = useRef<PagerView>(null);
   const initialPage = Math.max(0, dailyMeals.length - 1);
@@ -41,7 +46,11 @@ const PastMeals = () => {
                 imageUri={meal.image_uri}
               />
             ) : (
-              <PastMealCard key={index.toString()} meal={meal} />
+              <PastMealCard
+                key={index.toString()}
+                meal={meal}
+                onPress={() => onMealPress(meal)}
+              />
             )
           )
       ) : (

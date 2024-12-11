@@ -97,14 +97,26 @@ const fetchMealsSinceTimestamp = async (
         "SELECT * FROM meals WHERE created_at >= ? ORDER BY created_at DESC;",
         [timestamp],
         (_, result) => {
-          const meals = result.rows._array.map((row) => ({
-            ...row,
-            favorite: Boolean(row.favorite),
-            status: (row.status || "complete") as MealStatus,
-            last_analysis: row.last_analysis
-              ? JSON.parse(row.last_analysis)
-              : undefined,
-          }));
+          const meals = result.rows._array.map((row) => {
+            try {
+              return {
+                ...row,
+                favorite: Boolean(row.favorite),
+                status: (row.status || "complete") as MealStatus,
+                last_analysis: row.last_analysis
+                  ? JSON.parse(row.last_analysis)
+                  : null,
+              };
+            } catch (parseError) {
+              console.error("Error parsing meal data:", parseError, row);
+              return {
+                ...row,
+                favorite: Boolean(row.favorite),
+                status: "error" as MealStatus,
+                last_analysis: null,
+              };
+            }
+          });
           resolve(meals);
         },
         (_, error) => {
@@ -185,14 +197,26 @@ const fetchMealsInRangeAsync = async (
               resolve([]);
               return;
             }
-            const meals = result.rows._array.map((row) => ({
-              ...row,
-              favorite: Boolean(row.favorite),
-              status: (row.status || "complete") as MealStatus,
-              last_analysis: row.last_analysis
-                ? JSON.parse(row.last_analysis)
-                : undefined,
-            }));
+            const meals = result.rows._array.map((row) => {
+              try {
+                return {
+                  ...row,
+                  favorite: Boolean(row.favorite),
+                  status: (row.status || "complete") as MealStatus,
+                  last_analysis: row.last_analysis
+                    ? JSON.parse(row.last_analysis)
+                    : null,
+                };
+              } catch (parseError) {
+                console.error("Error parsing meal data:", parseError, row);
+                return {
+                  ...row,
+                  favorite: Boolean(row.favorite),
+                  status: "error" as MealStatus,
+                  last_analysis: null,
+                };
+              }
+            });
             console.log("Fetched meals from DB:", meals);
             resolve(meals);
           },
