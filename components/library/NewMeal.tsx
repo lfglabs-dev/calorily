@@ -18,6 +18,7 @@ import useResizedImage from "../../hooks/useResizedImage";
 import { useNavigation } from "@react-navigation/native";
 import useAddMeal from "../../hooks/useAddMeal";
 import UploadingMeal from "../addmeal/UploadingMeal";
+import { MealTemplate } from "../../types";
 
 const NewMeal = ({
   prefilledMeal,
@@ -54,12 +55,14 @@ const NewMeal = ({
 
   useEffect(() => {
     const calories = calculateCalories({
+      name: mealName || "Unnamed",
+      amount: 100, // Default serving size
       carbs: carbs ? parseFloat(carbs) : 0,
       proteins: proteins ? parseFloat(proteins) : 0,
       fats: fats ? parseFloat(fats) : 0,
     });
     setTotalCalories(calories);
-  }, [carbs, proteins, fats]);
+  }, [carbs, proteins, fats, mealName]);
 
   const handleChooseImage = async () => {
     if (status.granted) {
@@ -75,6 +78,7 @@ const NewMeal = ({
         setPopupComponent(
           <UploadingMeal
             imageBase64={resizedImage.base64}
+            imageURI={resizedImage.uri}
             onComplete={(mealId) => {
               addMeal(resizedImage.uri, mealId);
               setPopupComponent(null);

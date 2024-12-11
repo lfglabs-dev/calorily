@@ -47,6 +47,7 @@ const PastMeals = ({
           meal.status === "analyzing" ? (
             <LoadingMealCard
               mealId={meal.meal_id}
+              id={meal.id}
               key={index.toString()}
               imageUri={meal.image_uri}
               createdAt={meal.created_at}

@@ -15,10 +15,12 @@ const ANALYSIS_TIMEOUT = 60000; // 1 minute in milliseconds
 const LoadingMealCard = ({
   imageUri,
   mealId,
+  id,
   createdAt,
 }: {
   imageUri: string;
   mealId: string;
+  id: number;
   createdAt: number;
 }) => {
   console.log("loading meal id:", mealId);
@@ -30,7 +32,7 @@ const LoadingMealCard = ({
       const now = Date.now() / 1000;
       if (now - createdAt > 60) {
         // 60 seconds
-        updateMealById(mealId, {
+        updateMealById(id, {
           status: "failed",
           error_message: "Analysis timed out after 1 minute",
         });
@@ -38,7 +40,7 @@ const LoadingMealCard = ({
     }, ANALYSIS_TIMEOUT);
 
     return () => clearTimeout(timeoutId);
-  }, [mealId, createdAt]);
+  }, [id, createdAt]);
 
   const styles = StyleSheet.create({
     container: {

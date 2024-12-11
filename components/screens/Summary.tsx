@@ -23,6 +23,8 @@ const Summary = ({ navigation }) => {
   const resizedImage = useResizedImage(imageURI);
   const [reviewingMeal, setReviewingMeal] = useState(null);
   const { updateMealById } = useMealsDatabase();
+  const [libraryStatus, requestLibraryPermission] =
+    ImagePicker.useMediaLibraryPermissions();
 
   const dynamicStyles = StyleSheet.create({
     container: {
@@ -83,6 +85,27 @@ const Summary = ({ navigation }) => {
     }
   };
 
+  const pickFromLibrary = async () => {
+    if (libraryStatus.granted) {
+      let imageResult = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        exif: false,
+        quality: 0.075,
+      });
+
+      if (!imageResult.canceled && imageResult.assets) {
+        setImageURI(imageResult.assets[0].uri);
+      }
+    } else if (libraryStatus.canAskAgain) {
+      await requestLibraryPermission();
+    } else {
+      alert(
+        "Calorily needs your permission to access your photos. You can allow it in your iOS settings."
+      );
+    }
+  };
+
   return (
     <View style={dynamicStyles.container}>
       <Text style={dynamicStyles.title}>Summary</Text>
@@ -90,7 +113,7 @@ const Summary = ({ navigation }) => {
       <PastMeals onMealPress={(meal) => setReviewingMeal(meal)} />
       <TouchableOpacity
         style={dynamicStyles.secondaryButton}
-        onPress={() => {}}
+        onPress={pickFromLibrary}
       >
         <Text style={dynamicStyles.secondaryButtonText}>Load from Library</Text>
       </TouchableOpacity>
