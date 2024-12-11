@@ -49,6 +49,7 @@ const PastMeals = ({
               mealId={meal.meal_id}
               key={index.toString()}
               imageUri={meal.image_uri}
+              createdAt={meal.created_at}
             />
           ) : meal.status === "failed" ? (
             <FailedMealCard

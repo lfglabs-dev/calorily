@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -10,16 +10,35 @@ import {
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useMealsDatabase } from "../../../shared/MealsStorageContext";
 
+const ANALYSIS_TIMEOUT = 60000; // 1 minute in milliseconds
+
 const LoadingMealCard = ({
   imageUri,
   mealId,
+  createdAt,
 }: {
   imageUri: string;
   mealId: string;
+  createdAt: number;
 }) => {
   console.log("loading meal id:", mealId);
   const scheme = useColorScheme();
-  const { deleteMealById } = useMealsDatabase();
+  const { deleteMealById, updateMealById } = useMealsDatabase();
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const now = Date.now() / 1000;
+      if (now - createdAt > 60) {
+        // 60 seconds
+        updateMealById(mealId, {
+          status: "failed",
+          error_message: "Analysis timed out after 1 minute",
+        });
+      }
+    }, ANALYSIS_TIMEOUT);
+
+    return () => clearTimeout(timeoutId);
+  }, [mealId, createdAt]);
 
   const styles = StyleSheet.create({
     container: {
