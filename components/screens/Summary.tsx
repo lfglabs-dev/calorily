@@ -126,7 +126,6 @@ const Summary = ({ navigation }) => {
 
       {reviewingMeal && (
         <ReviewMeal
-          imageURI={reviewingMeal.image_uri}
           mealData={reviewingMeal}
           onUpdate={(updatedData) => {
             onMealUpdate(reviewingMeal, updatedData);

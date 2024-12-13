@@ -141,4 +141,12 @@ export const styles = (colorScheme: StylesProps["colorScheme"]) =>
       opacity: 0.8,
       color: colorScheme === "dark" ? "#FFF" : "#000",
     },
+    imageBackground: {
+      width: "100%",
+      height: "100%",
+      justifyContent: "space-between",
+    },
+    backgroundImage: {
+      borderRadius: 10,
+    },
   });

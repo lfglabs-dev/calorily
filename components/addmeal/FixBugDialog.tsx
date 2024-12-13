@@ -6,7 +6,7 @@ const LongTextInputDialog = ({ visible, onClose, onSubmit }) => {
   const [text, setText] = useState("");
   const [theme, setTheme] = useState(Appearance.getColorScheme());
   const [contentHeight, setContentHeight] = useState(0);
-  const lineHeight = 20; // Approximate height of one line
+  const lineHeight = 20;
 
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
@@ -15,10 +15,25 @@ const LongTextInputDialog = ({ visible, onClose, onSubmit }) => {
     return () => subscription.remove();
   }, []);
 
-  const isDarkTheme = theme === "dark";
+  const handleSubmit = () => {
+    if (!text || !text.trim()) {
+      console.warn("Feedback text is empty");
+      return;
+    }
 
-  const handleTextChange = (newText) => {
-    setText(newText);
+    const cleanText = text.trim();
+    console.log("Submitting feedback:", cleanText);
+
+    try {
+      onSubmit(cleanText);
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+    }
+  };
+
+  const handleTextChange = (newText: string) => {
+    const sanitizedText = newText.replace(/[\x00-\x1F\x7F-\x9F]/g, "");
+    setText(sanitizedText);
   };
 
   const handleContentSizeChange = (event) => {
@@ -39,18 +54,23 @@ const LongTextInputDialog = ({ visible, onClose, onSubmit }) => {
         <TextInput
           style={[
             styles.input,
-            isDarkTheme ? styles.inputDark : styles.inputLight,
+            theme === "dark" ? styles.inputDark : styles.inputLight,
           ]}
           onChangeText={handleTextChange}
           onContentSizeChange={handleContentSizeChange}
           value={text}
           multiline
           numberOfLines={5}
-          placeholderTextColor={isDarkTheme ? "#ccc" : "#666"}
+          placeholderTextColor={theme === "dark" ? "#ccc" : "#666"}
+          placeholder="Please describe the issue..."
         />
       </View>
       <Dialog.Button label="Cancel" onPress={onClose} />
-      <Dialog.Button label="Submit" onPress={() => onSubmit(text)} />
+      <Dialog.Button
+        label="Submit"
+        onPress={handleSubmit}
+        disabled={!text.trim()}
+      />
     </Dialog.Container>
   );
 };

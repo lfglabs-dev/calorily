@@ -1,5 +1,11 @@
 import React, { useRef, useState } from "react";
-import { View, Text, TouchableOpacity, useColorScheme } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  ImageBackground,
+} from "react-native";
 import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { styles } from "./styles";
 import { CustomBackground } from "./BottomSheet/CustomBackground";
@@ -14,17 +20,13 @@ import { useMealsDatabase } from "../../shared/MealsStorageContext";
 
 const SNAP_POINTS = ["90%"];
 
-const ReviewMeal = ({
-  imageURI,
-  mealData,
-  onUpdate,
-  onClose,
-}: {
-  imageURI: string;
+interface ReviewMealProps {
   mealData: StoredMeal;
-  onUpdate: (data: any) => void;
+  onUpdate: (updates: Partial<StoredMeal>) => void;
   onClose: () => void;
-}) => {
+}
+
+const ReviewMeal = ({ mealData, onUpdate, onClose }: ReviewMealProps) => {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const colorScheme = useColorScheme();
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -41,45 +43,46 @@ const ReviewMeal = ({
   const handleFeedback = async (feedback: string) => {
     try {
       const meal_id = mealData.meal_id;
-      const requestBody = {
-        meal_id,
-        feedback,
-      };
-      console.log("Sending feedback request:", {
-        url: "https://api.calorily.com/meals/feedback",
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${jwt.slice(0, 10)}...`, // Log partial JWT for security
-        },
-        body: requestBody,
-      });
+      console.log("Sending feedback for meal:", meal_id);
+      console.log("Feedback content:", feedback);
 
-      // Optimistically update and close
-      onUpdate({
-        status: "analyzing",
-        last_analysis: null,
-      });
-      setDialogVisible(false);
-      onClose();
-
-      // Send request in background
-      const response = await fetch("https://api.calorily.com/meals/feedback", {
+      const response = await fetch("https://api.calorily.com/feedback", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${jwt}`,
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          meal_id,
+          feedback: feedback,
+        }),
       });
 
       if (!response.ok) {
-        const responseData = await response.json();
-        throw new Error(responseData.error || "Failed to submit feedback");
+        const errorData = await response.json();
+        console.error("Feedback API error:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+        });
+        throw new Error(`API error: ${errorData.message || "Unknown error"}`);
       }
+
+      const data = await response.json();
+      console.log("Feedback submitted successfully:", data);
+
+      setDialogVisible(false);
+      onUpdate({
+        status: "analyzing",
+        error_message: null,
+      });
     } catch (error) {
-      console.error("Feedback error:", error);
-      alert(error.message);
+      console.error("Error submitting feedback:", {
+        error: error.message,
+        stack: error.stack,
+        meal_id: mealData.meal_id,
+      });
+      // Optionally show an error message to the user
     }
   };
 
@@ -101,93 +104,101 @@ const ReviewMeal = ({
       onClose={onClose}
     >
       <View style={styles(colorScheme).contentContainer}>
-        <View style={styles(colorScheme).titleContainer}>
-          <Text style={styles(colorScheme).resultTitle}>
-            {mealData.last_analysis?.meal_name || "Unnamed Meal"}
-          </Text>
-          <Text style={styles(colorScheme).calories}>
-            {Math.round(
-              ingredients.reduce(
-                (sum, item) => sum + calculateCalories(item),
-                0
-              )
-            )}{" "}
-            kCal
-          </Text>
-        </View>
+        <ImageBackground
+          source={{ uri: mealData.image_uri }}
+          style={styles(colorScheme).imageBackground}
+          imageStyle={styles(colorScheme).backgroundImage}
+        >
+          <View style={styles(colorScheme).titleContainer}>
+            <Text style={styles(colorScheme).resultTitle}>
+              {mealData.last_analysis?.meal_name || "Unnamed Meal"}
+            </Text>
+            <Text style={styles(colorScheme).calories}>
+              {Math.round(
+                ingredients.reduce(
+                  (sum, item) => sum + calculateCalories(item),
+                  0
+                )
+              )}{" "}
+              kCal
+            </Text>
+          </View>
 
-        <View style={styles(colorScheme).macroContainer}>
-          <View style={styles(colorScheme).macroGroup}>
-            <View style={styles(colorScheme).macroItem}>
-              <Ionicons
-                name="egg"
-                size={20}
-                style={styles(colorScheme).macroIcon}
-              />
-              <Text style={styles(colorScheme).macroText}>
-                {Math.round(
-                  ingredients.reduce((sum, item) => sum + item.proteins, 0)
-                )}
-                g
-              </Text>
-            </View>
+          <View style={styles(colorScheme).macroContainer}>
+            <View style={styles(colorScheme).macroGroup}>
+              <View style={styles(colorScheme).macroItem}>
+                <Ionicons
+                  name="egg"
+                  size={20}
+                  style={styles(colorScheme).macroIcon}
+                />
+                <Text style={styles(colorScheme).macroText}>
+                  {Math.round(
+                    ingredients.reduce((sum, item) => sum + item.proteins, 0)
+                  )}
+                  g
+                </Text>
+              </View>
 
-            <View style={styles(colorScheme).macroItem}>
-              <Ionicons
-                name="pizza"
-                size={20}
-                style={styles(colorScheme).macroIcon}
-              />
-              <Text style={styles(colorScheme).macroText}>
-                {Math.round(
-                  ingredients.reduce((sum, item) => sum + item.fats, 0)
-                )}
-                g
-              </Text>
-            </View>
+              <View style={styles(colorScheme).macroItem}>
+                <Ionicons
+                  name="pizza"
+                  size={20}
+                  style={styles(colorScheme).macroIcon}
+                />
+                <Text style={styles(colorScheme).macroText}>
+                  {Math.round(
+                    ingredients.reduce((sum, item) => sum + item.fats, 0)
+                  )}
+                  g
+                </Text>
+              </View>
 
-            <View style={styles(colorScheme).macroItem}>
-              <Ionicons
-                name="ice-cream"
-                size={20}
-                style={styles(colorScheme).macroIcon}
-              />
-              <Text style={styles(colorScheme).macroText}>
-                {Math.round(
-                  ingredients.reduce((sum, item) => sum + item.carbs, 0)
-                )}
-                g
-              </Text>
+              <View style={styles(colorScheme).macroItem}>
+                <Ionicons
+                  name="ice-cream"
+                  size={20}
+                  style={styles(colorScheme).macroIcon}
+                />
+                <Text style={styles(colorScheme).macroText}>
+                  {Math.round(
+                    ingredients.reduce((sum, item) => sum + item.carbs, 0)
+                  )}
+                  g
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
 
-        <BottomSheetFlatList
-          data={ingredients}
-          renderItem={({ item, index }) => (
-            <IngredientItem
-              item={item}
-              index={index}
-              colorScheme={colorScheme}
-              toggleSelection={() => {}}
-            />
-          )}
-          keyExtractor={(_item, index) => index.toString()}
-        />
+          <BottomSheetFlatList
+            data={ingredients}
+            renderItem={({ item, index }) => (
+              <IngredientItem
+                item={item}
+                index={index}
+                colorScheme={colorScheme}
+                toggleSelection={() => {}}
+              />
+            )}
+            keyExtractor={(_item, index) => index.toString()}
+          />
 
-        <TouchableOpacity
-          style={styles(colorScheme).secondaryButton}
-          onPress={() => setDialogVisible(true)}
-        >
-          <Text style={styles(colorScheme).secondaryButtonText}>Fix a bug</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles(colorScheme).secondaryButton}
+            onPress={() => setDialogVisible(true)}
+          >
+            <Text style={styles(colorScheme).secondaryButtonText}>
+              Fix a bug
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles(colorScheme).mainButton}
-          onPress={() => bottomSheetRef.current?.close()}
-        >
-          <Text style={styles(colorScheme).mainButtonText}>Close</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles(colorScheme).mainButton}
+            onPress={() => bottomSheetRef.current?.close()}
+          >
+            <Text style={styles(colorScheme).mainButtonText}>Close</Text>
+          </TouchableOpacity>
+        </ImageBackground>
       </View>
 
       <LongTextInputDialog
