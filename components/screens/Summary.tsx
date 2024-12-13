@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   useColorScheme,
+  Alert,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import CaloriesGoalCard from "../cards/CaloriesGoal";
@@ -67,8 +68,19 @@ const Summary = ({ navigation }) => {
   });
 
   const pickFromLibrary = async () => {
-    if (libraryStatus.granted) {
-      let imageResult = await ImagePicker.launchImageLibraryAsync({
+    if (!libraryStatus.granted) {
+      const permission = await requestLibraryPermission();
+      if (!permission.granted) {
+        Alert.alert(
+          "Photo Library Access Required",
+          "Calorily needs access to your photos. You can enable it in your iOS settings."
+        );
+        return;
+      }
+    }
+
+    try {
+      const imageResult = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: false,
         exif: false,
@@ -78,12 +90,38 @@ const Summary = ({ navigation }) => {
       if (!imageResult.canceled && imageResult.assets) {
         setImageURI(imageResult.assets[0].uri);
       }
-    } else if (libraryStatus.canAskAgain) {
-      await requestLibraryPermission();
-    } else {
-      alert(
-        "Calorily needs your permission to access your photos. You can allow it in your iOS settings."
-      );
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to load photo. Please try again.");
+    }
+  };
+
+  const quicklyAddMeal = async () => {
+    if (!status?.granted) {
+      const permission = await requestPermission();
+      if (!permission.granted) {
+        Alert.alert(
+          "Camera Access Required",
+          "Calorily needs camera access to take photos of your meals. You can enable it in your settings."
+        );
+        return;
+      }
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        exif: false,
+        quality: 0.075,
+      });
+
+      if (!result.canceled && result.assets) {
+        setImageURI(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error("Error taking photo:", error);
+      Alert.alert("Error", "Failed to take photo. Please try again.");
     }
   };
 
@@ -106,7 +144,10 @@ const Summary = ({ navigation }) => {
       >
         <Text style={dynamicStyles.secondaryButtonText}>Load from Library</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={dynamicStyles.mainButton} onPress={pickImage}>
+      <TouchableOpacity
+        style={dynamicStyles.mainButton}
+        onPress={quicklyAddMeal}
+      >
         <Text style={dynamicStyles.mainButtonText}>Quickly Add Meal</Text>
       </TouchableOpacity>
       {imageURI && resizedImage ? (

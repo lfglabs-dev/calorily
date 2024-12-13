@@ -12,9 +12,10 @@ import {
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { useAuth } from "../../../shared/AuthContext";
+import { useFocusEffect } from "@react-navigation/native";
 
-export default function Login({ navigation, route }) {
-  const { signIn } = useAuth();
+export default function Login({ navigation }) {
+  const { signIn, isAuthenticated } = useAuth();
   const scheme = useColorScheme();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const mounted = useRef(false);
@@ -32,6 +33,14 @@ export default function Login({ navigation, route }) {
       mounted.current = false;
     };
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isAuthenticated) {
+        navigation.navigate("Loading");
+      }
+    }, [isAuthenticated])
+  );
 
   const initiateAppleSignIn = async () => {
     if (!mounted.current || isSignInInProgress.current) return;
@@ -66,9 +75,6 @@ export default function Login({ navigation, route }) {
       }
 
       await signIn(data.jwt);
-      if (mounted.current && route.params?.onComplete) {
-        route.params.onComplete();
-      }
     } catch (e: any) {
       if (e.code === "ERR_REQUEST_CANCELED") {
         // User canceled the sign-in, just show the button again

@@ -29,9 +29,7 @@ export default function HealthPermissions({ navigation }) {
     if (Platform.OS !== "ios") {
       // Skip for non-iOS platforms
       setHasHealthPermissions(true);
-      navigation.navigate("Login", {
-        onComplete: () => navigation.navigate("Loading"),
-      });
+      navigation.navigate("Login");
       return;
     }
 
@@ -59,9 +57,7 @@ export default function HealthPermissions({ navigation }) {
         console.error("[ERROR] Cannot grant permissions:", error);
       }
       setHasHealthPermissions(true);
-      navigation.navigate("Login", {
-        onComplete: () => navigation.navigate("Loading"),
-      });
+      navigation.navigate("Login");
     });
   };
 

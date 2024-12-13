@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useState,
+  useCallback,
 } from "react";
 import * as SQLite from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
@@ -98,7 +99,7 @@ const fetchMealsSinceTimestamp = async (
   });
 };
 
-const deleteMealById = async (mealId: string): Promise<void> => {
+const deleteMealFromDB = async (mealId: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
       tx.executeSql(
@@ -376,10 +377,11 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
 
   const deleteMealById = async (mealId: string) => {
     try {
-      await deleteMealById(mealId);
+      await deleteMealFromDB(mealId);
       await refreshMeals();
     } catch (error) {
       console.error("Error deleting meal:", error);
+      throw error;
     }
   };
 
