@@ -14,9 +14,9 @@ import { IngredientItem } from "./IngredientItem";
 import { calculateCalories } from "../../utils/food";
 import LongTextInputDialog from "./FixBugDialog";
 import { useAuth } from "../../shared/AuthContext";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { StoredMeal } from "../../types";
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
+import { MacroIcon } from "../common/MacroIcon";
 
 const SNAP_POINTS = ["90%"];
 
@@ -43,10 +43,8 @@ const ReviewMeal = ({ mealData, onUpdate, onClose }: ReviewMealProps) => {
   const handleFeedback = async (feedback: string) => {
     try {
       const meal_id = mealData.meal_id;
-      console.log("Sending feedback for meal:", meal_id);
-      console.log("Feedback content:", feedback);
 
-      const response = await fetch("https://api.calorily.com/feedback", {
+      const response = await fetch("https://api.calorily.com/meals/feedback", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -54,22 +52,18 @@ const ReviewMeal = ({ mealData, onUpdate, onClose }: ReviewMealProps) => {
         },
         body: JSON.stringify({
           meal_id,
-          feedback: feedback,
+          feedback,
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Feedback API error:", {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData,
-        });
-        throw new Error(`API error: ${errorData.message || "Unknown error"}`);
+        throw new Error(`API error: ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log("Feedback submitted successfully:", data);
+      const data = await response.text();
+      if (data) {
+        console.log("Feedback submitted successfully:", data);
+      }
 
       setDialogVisible(false);
       onUpdate({
@@ -77,12 +71,7 @@ const ReviewMeal = ({ mealData, onUpdate, onClose }: ReviewMealProps) => {
         error_message: null,
       });
     } catch (error) {
-      console.error("Error submitting feedback:", {
-        error: error.message,
-        stack: error.stack,
-        meal_id: mealData.meal_id,
-      });
-      // Optionally show an error message to the user
+      console.error("Error submitting feedback:", error);
     }
   };
 
@@ -97,108 +86,93 @@ const ReviewMeal = ({ mealData, onUpdate, onClose }: ReviewMealProps) => {
   return (
     <BottomSheet
       ref={bottomSheetRef}
-      index={0}
       snapPoints={SNAP_POINTS}
+      onClose={onClose}
       backgroundComponent={CustomBackground}
       handleComponent={CustomHandle}
-      onClose={onClose}
     >
       <View style={styles(colorScheme).contentContainer}>
-        <ImageBackground
-          source={{ uri: mealData.image_uri }}
-          style={styles(colorScheme).imageBackground}
-          imageStyle={styles(colorScheme).backgroundImage}
-        >
-          <View style={styles(colorScheme).titleContainer}>
-            <Text style={styles(colorScheme).resultTitle}>
-              {mealData.last_analysis?.meal_name || "Unnamed Meal"}
-            </Text>
-            <Text style={styles(colorScheme).calories}>
-              {Math.round(
-                ingredients.reduce(
-                  (sum, item) => sum + calculateCalories(item),
-                  0
-                )
-              )}{" "}
-              kCal
-            </Text>
-          </View>
+        <View style={styles(colorScheme).titleContainer}>
+          <Text style={styles(colorScheme).title}>
+            {mealData?.last_analysis?.meal_name || "Meal Analysis"}
+          </Text>
+        </View>
 
-          <View style={styles(colorScheme).macroContainer}>
-            <View style={styles(colorScheme).macroGroup}>
-              <View style={styles(colorScheme).macroItem}>
-                <Ionicons
-                  name="egg"
-                  size={20}
-                  style={styles(colorScheme).macroIcon}
-                />
-                <Text style={styles(colorScheme).macroText}>
-                  {Math.round(
-                    ingredients.reduce((sum, item) => sum + item.proteins, 0)
-                  )}
-                  g
-                </Text>
-              </View>
+        <View style={styles(colorScheme).macroContainer}>
+          <View style={styles(colorScheme).macroGroup}>
+            <View style={styles(colorScheme).macroItem}>
+              <MacroIcon
+                type="proteins"
+                size={20}
+                color={colorScheme === "dark" ? "#FFF" : "#000"}
+                style={styles(colorScheme).macroIcon}
+              />
+              <Text style={styles(colorScheme).macroText}>
+                {Math.round(
+                  ingredients.reduce((sum, item) => sum + item.proteins, 0)
+                )}
+                g
+              </Text>
+            </View>
 
-              <View style={styles(colorScheme).macroItem}>
-                <Ionicons
-                  name="pizza"
-                  size={20}
-                  style={styles(colorScheme).macroIcon}
-                />
-                <Text style={styles(colorScheme).macroText}>
-                  {Math.round(
-                    ingredients.reduce((sum, item) => sum + item.fats, 0)
-                  )}
-                  g
-                </Text>
-              </View>
+            <View style={styles(colorScheme).macroItem}>
+              <MacroIcon
+                type="fats"
+                size={20}
+                color={colorScheme === "dark" ? "#FFF" : "#000"}
+                style={styles(colorScheme).macroIcon}
+              />
+              <Text style={styles(colorScheme).macroText}>
+                {Math.round(
+                  ingredients.reduce((sum, item) => sum + item.fats, 0)
+                )}
+                g
+              </Text>
+            </View>
 
-              <View style={styles(colorScheme).macroItem}>
-                <Ionicons
-                  name="ice-cream"
-                  size={20}
-                  style={styles(colorScheme).macroIcon}
-                />
-                <Text style={styles(colorScheme).macroText}>
-                  {Math.round(
-                    ingredients.reduce((sum, item) => sum + item.carbs, 0)
-                  )}
-                  g
-                </Text>
-              </View>
+            <View style={styles(colorScheme).macroItem}>
+              <MacroIcon
+                type="carbs"
+                size={20}
+                color={colorScheme === "dark" ? "#FFF" : "#000"}
+                style={styles(colorScheme).macroIcon}
+              />
+              <Text style={styles(colorScheme).macroText}>
+                {Math.round(
+                  ingredients.reduce((sum, item) => sum + item.carbs, 0)
+                )}
+                g
+              </Text>
             </View>
           </View>
+        </View>
 
-          <BottomSheetFlatList
-            data={ingredients}
-            renderItem={({ item, index }) => (
-              <IngredientItem
-                item={item}
-                index={index}
-                colorScheme={colorScheme}
-                toggleSelection={() => {}}
-              />
-            )}
-            keyExtractor={(_item, index) => index.toString()}
-          />
+        <BottomSheetFlatList
+          data={ingredients}
+          renderItem={({ item, index }) => (
+            <IngredientItem
+              item={item}
+              index={index}
+              colorScheme={colorScheme}
+              toggleSelection={() => {}}
+            />
+          )}
+          keyExtractor={(_item, index) => index.toString()}
+        />
 
-          <TouchableOpacity
-            style={styles(colorScheme).secondaryButton}
-            onPress={() => setDialogVisible(true)}
-          >
-            <Text style={styles(colorScheme).secondaryButtonText}>
-              Fix a bug
-            </Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={styles(colorScheme).secondaryButton}
+          onPress={() => setDialogVisible(true)}
+        >
+          <Text style={styles(colorScheme).secondaryButtonText}>Fix a bug</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles(colorScheme).mainButton}
-            onPress={() => bottomSheetRef.current?.close()}
-          >
-            <Text style={styles(colorScheme).mainButtonText}>Close</Text>
-          </TouchableOpacity>
-        </ImageBackground>
+        <TouchableOpacity
+          style={styles(colorScheme).mainButton}
+          onPress={() => bottomSheetRef.current?.close()}
+        >
+          <Text style={styles(colorScheme).mainButtonText}>Close</Text>
+        </TouchableOpacity>
       </View>
 
       <LongTextInputDialog

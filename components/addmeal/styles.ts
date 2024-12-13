@@ -98,7 +98,7 @@ export const styles = (colorScheme: StylesProps["colorScheme"]) =>
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 10,
+      marginBottom: 15,
       gap: 15,
     },
     calories: {
@@ -117,7 +117,7 @@ export const styles = (colorScheme: StylesProps["colorScheme"]) =>
       paddingVertical: 6,
       borderRadius: 15,
       opacity: 0.8,
-      marginBottom: 15,
+      marginBottom: 20,
       alignSelf: "center",
     },
     macroGroup: {

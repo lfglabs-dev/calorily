@@ -49,7 +49,7 @@ const LongTextInputDialog = ({ visible, onClose, onSubmit }) => {
       onBackdropPress={onClose}
       contentStyle={{ marginBottom: dynamicMargin }}
     >
-      <Dialog.Title>Describe what's wrong</Dialog.Title>
+      <Dialog.Title>Report an Issue</Dialog.Title>
       <View style={styles.descriptionContainer}>
         <TextInput
           style={[
@@ -60,8 +60,8 @@ const LongTextInputDialog = ({ visible, onClose, onSubmit }) => {
           onContentSizeChange={handleContentSizeChange}
           value={text}
           multiline
-          numberOfLines={5}
-          placeholderTextColor={theme === "dark" ? "#ccc" : "#666"}
+          numberOfLines={2}
+          placeholderTextColor={theme === "dark" ? "#999" : "#666"}
           placeholder="Please describe the issue..."
         />
       </View>
@@ -82,8 +82,13 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   input: {
-    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    paddingTop: 6,
     padding: 10,
+    marginVertical: 10,
+    maxHeight: 120,
     textAlignVertical: "top",
   },
   inputLight: {
@@ -95,6 +100,10 @@ const styles = StyleSheet.create({
     borderColor: "#555",
     borderWidth: 1,
     color: "white",
+  },
+  placeholder: {
+    fontSize: 16,
+    opacity: 0.6,
   },
 });
 

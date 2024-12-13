@@ -10,9 +10,9 @@ import {
 } from "react-native";
 import FullLibrary from "../library/FullLibrary";
 import SegmentedControlTab from "react-native-segmented-control-tab";
-import { useNavigation } from "@react-navigation/native";
 import NewMeal from "../library/NewMeal";
 import FavoriteLirary from "../library/FavoriteLibrary";
+import { MealTemplate } from "../../types";
 
 const MealsLibrary = () => {
   const scheme = useColorScheme();
