@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   useColorScheme,
   TouchableOpacity,
+  Text,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useMealsDatabase } from "../../../shared/MealsStorageContext";
@@ -24,6 +25,25 @@ const LoadingMealCard = ({
   console.log("loading meal id:", mealId);
   const scheme = useColorScheme();
   const { deleteMealById, updateMeal } = useMealsDatabase();
+  const [statusMessage, setStatusMessage] = useState("Analyzing your meal...");
+
+  const statusMessages = [
+    "Analyzing your meal...",
+    "Identifying ingredients...",
+    "Calculating portions...",
+    "Getting nutrition facts...",
+    "Fine-tuning results...",
+  ];
+
+  useEffect(() => {
+    let currentIndex = 0;
+    const interval = setInterval(() => {
+      currentIndex = (currentIndex + 1) % statusMessages.length;
+      setStatusMessage(statusMessages[currentIndex]);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -65,11 +85,13 @@ const LoadingMealCard = ({
       right: 10,
       zIndex: 1,
     },
+    statusText: {
+      marginTop: 20,
+      fontSize: 16,
+      fontWeight: "500",
+      textAlign: "center",
+    },
   });
-
-  const handleDelete = () => {
-    deleteMealById(mealId);
-  };
 
   return (
     <View style={styles.container}>
@@ -79,7 +101,10 @@ const LoadingMealCard = ({
         imageStyle={{ borderRadius: 8 }}
         blurRadius={3}
       >
-        <TouchableOpacity style={styles.closeButton} onPress={handleDelete}>
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => deleteMealById(mealId)}
+        >
           <FontAwesome name="close" size={24} color="#A9A9A9" />
         </TouchableOpacity>
         <View style={styles.overlay}>
@@ -88,6 +113,14 @@ const LoadingMealCard = ({
             color={scheme === "dark" ? "#FFF" : "#007AFF"}
             style={styles.spinner}
           />
+          <Text
+            style={[
+              styles.statusText,
+              { color: scheme === "dark" ? "#FFF" : "#000" },
+            ]}
+          >
+            {statusMessage}
+          </Text>
         </View>
       </ImageBackground>
     </View>
