@@ -15,28 +15,28 @@ import {
   useColorScheme,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import { StoredMeal, MealTemplate } from "../../types";
-import { useMealLibrary } from "../../hooks/useMealLibrary";
 
-const MealItem = ({
+interface MealItemProps {
+  meal: StoredMeal;
+  setMeals: React.Dispatch<React.SetStateAction<StoredMeal[]>>;
+  removeMeal: (meal: StoredMeal) => Promise<void>;
+  handlePrefillMeal: (meal: MealTemplate) => void;
+  toggleFavorite: (meal: StoredMeal) => Promise<void>;
+}
+
+const MealItem: React.FC<MealItemProps> = ({
   meal,
   setMeals,
   removeMeal,
   handlePrefillMeal,
-}: {
-  meal: StoredMeal;
-  setMeals: React.Dispatch<React.SetStateAction<StoredMeal[]>>;
-  removeMeal: (meal: StoredMeal) => void;
-  handlePrefillMeal: (meal: MealTemplate | undefined) => void;
+  toggleFavorite,
 }) => {
   const scheme = useColorScheme();
-  const { toggleFavorite } = useMealLibrary();
   const animatedOpacity = useRef(
     new Animated.Value(meal.favorite ? 1 : 0)
   ).current;
 
-  // Add handlePrefill function
   const handlePrefill = () => {
     if (!meal.last_analysis) return;
 
@@ -58,11 +58,10 @@ const MealItem = ({
     });
   };
 
-  // Optimistically update UI before the backend catches up
   const handleFavoriteToggle = async () => {
     setMeals((currentMeals) => {
       const newMeals = currentMeals.map((m) =>
-        m.id === meal.id ? { ...m, favorite: !m.favorite } : m
+        m.meal_id === meal.meal_id ? { ...m, favorite: !m.favorite } : m
       );
       return newMeals;
     });
@@ -73,19 +72,13 @@ const MealItem = ({
       console.error("Error toggling favorite:", error);
       setMeals((currentMeals) =>
         currentMeals.map((m) =>
-          m.id === meal.id ? { ...m, favorite: meal.favorite } : m
+          m.meal_id === meal.meal_id ? { ...m, favorite: meal.favorite } : m
         )
       );
     }
   };
 
-  const handleLongPress = () => {
-    if (meal.favorite) {
-      handleFavoriteToggle();
-    } else {
-      handleFavoriteToggle();
-    }
-  };
+  const handleLongPress = handleFavoriteToggle;
 
   useEffect(() => {
     Animated.timing(animatedOpacity, {
@@ -95,7 +88,6 @@ const MealItem = ({
     }).start();
   }, [meal.favorite]);
 
-  // JSX for rendering a single meal
   return (
     <TouchableOpacity
       style={styles.mealContainer}
@@ -109,18 +101,15 @@ const MealItem = ({
         imageStyle={styles.imageStyle}
       >
         <View
-          style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            left: 0,
-            right: 0,
-            borderRadius: 10,
-            backgroundColor:
-              scheme === "dark"
-                ? "rgba(0, 0, 0, 0.5)"
-                : "rgba(255, 255, 255, 0.5)",
-          }}
+          style={[
+            styles.overlay,
+            {
+              backgroundColor:
+                scheme === "dark"
+                  ? "rgba(0, 0, 0, 0.5)"
+                  : "rgba(255, 255, 255, 0.5)",
+            },
+          ]}
         />
         <View style={styles.iconContainer}>
           <TouchableOpacity onPress={() => removeMeal(meal)}>
@@ -145,7 +134,7 @@ const MealItem = ({
               { color: scheme === "dark" ? "#fff" : "#000" },
             ]}
           >
-            {meal.name}
+            {meal.last_analysis?.meal_name || "Unnamed Meal"}
           </Text>
         </View>
       </ImageBackground>
@@ -197,6 +186,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
     color: "white",
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderRadius: 10,
   },
 });
 

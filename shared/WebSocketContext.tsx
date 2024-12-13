@@ -7,6 +7,8 @@ import React, {
 } from "react";
 import { useAuth } from "./AuthContext";
 import { setLastSyncTimestamp } from "../utils/storage";
+import { MealAnalysis } from "../types";
+import { mealService } from "../services/mealService";
 
 type WebSocketMessage = {
   meal_id: string;
@@ -74,6 +76,31 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       }
     };
   }, [jwt]);
+
+  useEffect(() => {
+    if (lastMessage && lastMessage.meal_id) {
+      if (lastMessage.event === "analysis_failed") {
+        mealService.updateMeal({
+          meal_id: lastMessage.meal_id,
+          status: "failed",
+          error_message: lastMessage.error,
+        });
+      } else if (lastMessage.event === "analysis_complete") {
+        const analysisData: MealAnalysis = {
+          meal_id: lastMessage.meal_id,
+          meal_name: lastMessage.data.meal_name,
+          ingredients: lastMessage.data.ingredients,
+          timestamp: lastMessage.data.timestamp,
+        };
+
+        mealService.updateMeal({
+          meal_id: lastMessage.meal_id,
+          status: "complete",
+          last_analysis: analysisData,
+        });
+      }
+    }
+  }, [lastMessage]);
 
   return (
     <WebSocketContext.Provider value={{ isConnected, lastMessage }}>

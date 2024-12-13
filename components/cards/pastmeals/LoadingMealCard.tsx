@@ -15,24 +15,22 @@ const ANALYSIS_TIMEOUT = 60000; // 1 minute in milliseconds
 const LoadingMealCard = ({
   imageUri,
   mealId,
-  id,
   createdAt,
 }: {
   imageUri: string;
   mealId: string;
-  id: number;
   createdAt: number;
 }) => {
   console.log("loading meal id:", mealId);
   const scheme = useColorScheme();
-  const { deleteMealById, updateMealById } = useMealsDatabase();
+  const { deleteMealById, updateMeal } = useMealsDatabase();
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       const now = Date.now() / 1000;
       if (now - createdAt > 60) {
-        // 60 seconds
-        updateMealById(id, {
+        updateMeal({
+          meal_id: mealId,
           status: "failed",
           error_message: "Analysis timed out after 1 minute",
         });
@@ -40,7 +38,7 @@ const LoadingMealCard = ({
     }, ANALYSIS_TIMEOUT);
 
     return () => clearTimeout(timeoutId);
-  }, [id, createdAt]);
+  }, [mealId, createdAt]);
 
   const styles = StyleSheet.create({
     container: {

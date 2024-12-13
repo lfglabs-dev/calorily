@@ -3,7 +3,7 @@ import { StoredMeal } from "../types";
 import { useMealsDatabase } from "../shared/MealsStorageContext";
 
 export const useMealLibrary = () => {
-  const { fetchMealsInRangeAsync, deleteMealById, updateMealById } =
+  const { fetchMealsInRangeAsync, deleteMealById, updateMeal } =
     useMealsDatabase();
   const [meals, setMeals] = useState<StoredMeal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,13 +33,16 @@ export const useMealLibrary = () => {
     async (meal: StoredMeal) => {
       try {
         const newFavoriteValue = !meal.favorite;
-        await updateMealById(meal.id, {
+        await updateMeal({
+          meal_id: meal.meal_id,
           favorite: newFavoriteValue,
         });
 
         setMeals((currentMeals) => {
           const newMeals = currentMeals.map((m) =>
-            m.id === meal.id ? { ...m, favorite: newFavoriteValue } : m
+            m.meal_id === meal.meal_id
+              ? { ...m, favorite: newFavoriteValue }
+              : m
           );
           return newMeals;
         });
@@ -47,12 +50,12 @@ export const useMealLibrary = () => {
         console.error("Error in toggleFavorite:", err);
         setMeals((currentMeals) =>
           currentMeals.map((m) =>
-            m.id === meal.id ? { ...m, favorite: meal.favorite } : m
+            m.meal_id === meal.meal_id ? { ...m, favorite: meal.favorite } : m
           )
         );
       }
     },
-    [updateMealById]
+    [updateMeal]
   );
 
   const removeMeal = useCallback(
@@ -61,7 +64,7 @@ export const useMealLibrary = () => {
         if (meal.favorite) {
           await toggleFavorite(meal);
         } else {
-          await deleteMealById(meal.id);
+          await deleteMealById(meal.meal_id);
           await loadMeals();
         }
       } catch (err) {

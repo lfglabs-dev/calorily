@@ -21,27 +21,24 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "./AuthContext";
 import { getLastSyncTimestamp, setLastSyncTimestamp } from "../utils/storage";
 import { AppState } from "react-native";
+import { mealService } from "../services/mealService";
+import { eventBus } from "../services/eventBus";
 
 const db = SQLite.openDatabase("meals.db");
 
 const DB_VERSION = 4; // Increment for new schema with error_message
 
 const setupDatabaseAsync = async (): Promise<void> => {
-  console.log("Starting database setup...");
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
-      console.log("Dropping old version table...");
       tx.executeSql("DROP TABLE IF EXISTS version;", [], () => {
-        console.log("Creating version table...");
         tx.executeSql(
           "CREATE TABLE IF NOT EXISTS version (id INTEGER PRIMARY KEY CHECK (id = 1), version INTEGER)",
           [],
           () => {
-            console.log("Version table created");
             tx.executeSql(
               `CREATE TABLE IF NOT EXISTS meals (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                meal_id TEXT,
+                meal_id TEXT PRIMARY KEY,
                 image_uri TEXT NOT NULL,
                 favorite INTEGER DEFAULT 0,
                 status TEXT DEFAULT 'analyzing',
@@ -51,20 +48,7 @@ const setupDatabaseAsync = async (): Promise<void> => {
               );`,
               [],
               () => {
-                console.log("Meals table created");
-                tx.executeSql(
-                  "INSERT OR REPLACE INTO version (id, version) VALUES (1, ?)",
-                  [DB_VERSION],
-                  () => {
-                    console.log("Version updated to", DB_VERSION);
-                    resolve();
-                  },
-                  (_, error) => {
-                    console.error("Error updating version:", error);
-                    reject(error);
-                    return false;
-                  }
-                );
+                resolve();
               }
             );
           }
@@ -114,20 +98,12 @@ const fetchMealsSinceTimestamp = async (
   });
 };
 
-const deleteMealByIdAsync = async (
-  mealIdOrId: string | number
-): Promise<void> => {
+const deleteMealById = async (mealId: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
-      // If it's a number, use id. If it's a string, use meal_id
-      const query =
-        typeof mealIdOrId === "number"
-          ? "DELETE FROM meals WHERE id = ?;"
-          : "DELETE FROM meals WHERE meal_id = ?;";
-
       tx.executeSql(
-        query,
-        [mealIdOrId],
+        "DELETE FROM meals WHERE meal_id = ?;",
+        [mealId],
         () => {
           resolve();
         },
@@ -140,37 +116,7 @@ const deleteMealByIdAsync = async (
   });
 };
 
-const updateMealByIdAsync = async (
-  id: number,
-  updates: Partial<StoredMeal>
-): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    db.transaction((tx) => {
-      const fields = Object.keys(updates);
-      const setClause = fields.map((field) => `${field} = ?`).join(", ");
-      const values = fields.map((field) => {
-        // Stringify objects like last_analysis
-        return typeof updates[field] === "object"
-          ? JSON.stringify(updates[field])
-          : updates[field];
-      });
-      const query = `UPDATE meals SET ${setClause} WHERE id = ?`;
-      const params = [...values, id];
-
-      tx.executeSql(
-        query,
-        params,
-        (_, result) => {
-          resolve();
-        },
-        (_, error) => {
-          reject(error);
-          return false;
-        }
-      );
-    });
-  });
-};
+const updateMeal = mealService.updateMeal;
 
 const fetchMealsInRangeAsync = async (
   startIndex: number,
@@ -229,8 +175,10 @@ type MealsDatabaseContextProps = {
   dailyMeals: StoredMeal[];
   weeklyMeals: StoredMeal[];
   insertMeal: (tmpImageUri: string, mealId?: string) => Promise<void>;
-  deleteMealById: (mealIdOrId: string | number) => Promise<void>;
-  updateMealById: (id: number, updates: Partial<StoredMeal>) => Promise<void>;
+  deleteMealById: (mealId: string) => Promise<void>;
+  updateMeal: (
+    updates: Partial<StoredMeal> & { meal_id: string }
+  ) => Promise<void>;
   fetchMealsInRangeAsync: (
     startIndex: number,
     count: number
@@ -244,7 +192,7 @@ const MealsDatabaseContext = createContext<MealsDatabaseContextProps>({
   weeklyMeals: [],
   insertMeal: async () => {},
   deleteMealById: async () => {},
-  updateMealById: async () => {},
+  updateMeal: async () => {},
   fetchMealsInRangeAsync: async () => [],
   refreshMeals: async () => {},
   syncMeals: async () => {},
@@ -426,55 +374,45 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     });
   };
 
-  const deleteMealById = async (mealIdOrId: string | number) => {
-    await deleteMealByIdAsync(mealIdOrId);
-    await refreshMeals();
+  const deleteMealById = async (mealId: string) => {
+    try {
+      await deleteMealById(mealId);
+      await refreshMeals();
+    } catch (error) {
+      console.error("Error deleting meal:", error);
+    }
   };
 
   const updateMealData = (mealId: string, data: any) => {
-    db.transaction((tx) => {
-      const analysisData: MealAnalysis = {
-        meal_id: mealId,
-        meal_name: data.meal_name,
-        ingredients: data.ingredients,
-        timestamp: data.timestamp,
-      };
+    const analysisData: MealAnalysis = {
+      meal_id: mealId,
+      meal_name: data.meal_name,
+      ingredients: data.ingredients,
+      timestamp: data.timestamp,
+    };
 
-      tx.executeSql(
-        `UPDATE meals 
-         SET status = 'complete',
-         last_analysis = ?
-         WHERE meal_id = ?`,
-        [JSON.stringify(analysisData), mealId],
-        () => {
-          setWeeklyMeals((prevMeals) => {
-            return prevMeals.map((meal) => {
-              if (meal.meal_id === mealId) {
-                return {
-                  ...meal,
-                  status: "complete",
-                  last_analysis: analysisData,
-                };
-              }
-              return meal;
-            });
+    updateMeal({
+      meal_id: mealId,
+      status: "complete",
+      last_analysis: analysisData,
+    })
+      .then(() => {
+        setWeeklyMeals((prevMeals) => {
+          return prevMeals.map((meal) => {
+            if (meal.meal_id === mealId) {
+              return {
+                ...meal,
+                status: "complete",
+                last_analysis: analysisData,
+              };
+            }
+            return meal;
           });
-        },
-        (_, error) => {
-          console.error("Error updating meal in DB:", error);
-          return false;
-        }
-      );
-    });
-  };
-
-  const updateMealById = async (id: number, updates: Partial<StoredMeal>) => {
-    try {
-      await updateMealByIdAsync(id, updates);
-      await refreshMeals();
-    } catch (error) {
-      console.error("Error updating meal:", error);
-    }
+        });
+      })
+      .catch((error) => {
+        console.error("Error updating meal in DB:", error);
+      });
   };
 
   const syncMeals = async () => {
@@ -567,6 +505,11 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     return () => clearInterval(cleanup);
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = eventBus.subscribe("mealsUpdated", refreshMeals);
+    return () => unsubscribe();
+  }, []);
+
   return (
     <MealsDatabaseContext.Provider
       value={{
@@ -574,7 +517,7 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
         weeklyMeals,
         insertMeal,
         deleteMealById,
-        updateMealById,
+        updateMeal,
         fetchMealsInRangeAsync,
         refreshMeals,
         syncMeals,

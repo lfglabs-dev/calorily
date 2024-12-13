@@ -14,6 +14,7 @@ import UploadingMeal from "../addmeal/UploadingMeal";
 import useResizedImage from "../../hooks/useResizedImage";
 import ReviewMeal from "../addmeal/ReviewMeal";
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
+import { StoredMeal } from "../../types";
 
 const Summary = ({ navigation }) => {
   const scheme = useColorScheme();
@@ -22,7 +23,7 @@ const Summary = ({ navigation }) => {
   const [imageURI, setImageURI] = useState<string | undefined>();
   const resizedImage = useResizedImage(imageURI);
   const [reviewingMeal, setReviewingMeal] = useState(null);
-  const { updateMealById } = useMealsDatabase();
+  const { updateMeal } = useMealsDatabase();
   const [libraryStatus, requestLibraryPermission] =
     ImagePicker.useMediaLibraryPermissions();
 
@@ -86,6 +87,14 @@ const Summary = ({ navigation }) => {
     }
   };
 
+  const onMealUpdate = (meal: StoredMeal, updatedData: any) => {
+    updateMeal({
+      meal_id: meal.meal_id,
+      status: updatedData.status,
+      last_analysis: updatedData.last_analysis,
+    });
+  };
+
   return (
     <View style={dynamicStyles.container}>
       <Text style={dynamicStyles.title}>Summary</Text>
@@ -120,10 +129,7 @@ const Summary = ({ navigation }) => {
           imageURI={reviewingMeal.image_uri}
           mealData={reviewingMeal}
           onUpdate={(updatedData) => {
-            updateMealById(reviewingMeal.id, {
-              status: updatedData.status,
-              last_analysis: updatedData.last_analysis,
-            });
+            onMealUpdate(reviewingMeal, updatedData);
             setReviewingMeal(null);
           }}
           onClose={() => setReviewingMeal(null)}

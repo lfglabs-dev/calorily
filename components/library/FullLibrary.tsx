@@ -15,8 +15,15 @@ const FullLibrary = ({
 }: {
   handlePrefillMeal: (meal: MealTemplate | undefined) => void;
 }) => {
-  const { meals, setMeals, isLoading, error, loadMeals, removeMeal } =
-    useMealLibrary();
+  const {
+    meals,
+    setMeals,
+    isLoading,
+    error,
+    loadMeals,
+    removeMeal,
+    toggleFavorite,
+  } = useMealLibrary();
 
   useEffect(() => {
     loadMeals();
@@ -44,10 +51,11 @@ const FullLibrary = ({
         {Array.isArray(meals) ? (
           meals.map((meal) => (
             <MealItem
-              key={meal.id}
+              key={meal.meal_id}
               meal={meal}
               setMeals={setMeals}
               removeMeal={removeMeal}
+              toggleFavorite={toggleFavorite}
               handlePrefillMeal={handlePrefillMeal}
             />
           ))
@@ -66,43 +74,6 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-  },
-  mealContainer: {
-    width: "50%",
-    padding: 5,
-  },
-  mealImage: {
-    width: "100%",
-    height: 150,
-    justifyContent: "space-between",
-  },
-  imageStyle: {
-    borderRadius: 10,
-  },
-  iconContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    width: "100%",
-    padding: 5,
-  },
-  centerIcon: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    top: 50,
-    alignItems: "center",
-  },
-  titleContainer: {
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
-    padding: 5,
-  },
-  mealName: {
-    fontWeight: "bold",
-    textAlign: "center",
-    color: "white",
   },
 });
 

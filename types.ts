@@ -14,7 +14,6 @@ export interface MealAnalysis {
 }
 
 export interface StoredMeal {
-  id: number;
   meal_id: string;
   image_uri: string;
   favorite: boolean;

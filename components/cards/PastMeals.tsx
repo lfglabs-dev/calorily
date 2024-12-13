@@ -48,32 +48,31 @@ const PastMeals = ({
       overdrag={true}
     >
       {dailyMeals.length > 0 ? (
-        sortedMeals.map((meal, index) =>
+        sortedMeals.map((meal) =>
           meal.status === "analyzing" ? (
             <LoadingMealCard
+              key={meal.meal_id}
               mealId={meal.meal_id}
-              id={meal.id}
-              key={index.toString()}
               imageUri={meal.image_uri}
               createdAt={meal.created_at}
             />
           ) : meal.status === "failed" ? (
             <FailedMealCard
-              key={index.toString()}
+              key={meal.meal_id}
               mealId={meal.meal_id}
               imageUri={meal.image_uri}
               errorMessage={meal.error_message || "Unknown error occurred"}
             />
           ) : (
             <PastMealCard
-              key={index.toString()}
+              key={meal.meal_id}
               meal={meal}
               onPress={() => onMealPress(meal)}
             />
           )
         )
       ) : (
-        <EmptyMealCard key={0} />
+        <EmptyMealCard key="empty" />
       )}
     </PagerView>
   );

@@ -10,6 +10,7 @@ import LongTextInputDialog from "./FixBugDialog";
 import { useAuth } from "../../shared/AuthContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { StoredMeal } from "../../types";
+import { useMealsDatabase } from "../../shared/MealsStorageContext";
 
 const SNAP_POINTS = ["90%"];
 
@@ -28,6 +29,7 @@ const ReviewMeal = ({
   const colorScheme = useColorScheme();
   const [dialogVisible, setDialogVisible] = useState(false);
   const { jwt } = useAuth();
+  const { updateMeal } = useMealsDatabase();
 
   const ingredients =
     mealData?.last_analysis?.ingredients?.map((item) => ({
@@ -79,6 +81,14 @@ const ReviewMeal = ({
       console.error("Feedback error:", error);
       alert(error.message);
     }
+  };
+
+  const handleUpdate = async (updates: Partial<StoredMeal>) => {
+    await updateMeal({
+      meal_id: mealData.meal_id,
+      ...updates,
+    });
+    onUpdate?.(updates);
   };
 
   return (
