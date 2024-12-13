@@ -13,6 +13,7 @@ import { getMealMacros } from "../../../utils/food";
 import { StoredMeal } from "../../../types";
 import ReviewMeal from "../../addmeal/ReviewMeal";
 import { useState } from "react";
+import { MacroIcon } from "../../common/MacroIcon";
 
 const PastMealCard = ({
   meal,
@@ -111,6 +112,7 @@ const PastMealCard = ({
     },
     macroIcon: {
       opacity: 0.8,
+      marginRight: 4,
     },
     caloriesContainer: {
       flexDirection: "row",
@@ -137,7 +139,7 @@ const PastMealCard = ({
   });
 
   const handleDelete = () => {
-    deleteMealById(meal.id);
+    deleteMealById(meal.meal_id);
   };
 
   const handleCardPress = () => {
@@ -170,23 +172,27 @@ const PastMealCard = ({
           <View style={cardStyles.macroContainer}>
             <View style={cardStyles.macroGroup}>
               <View style={cardStyles.macroItem}>
-                <Ionicons name="egg" size={20} style={cardStyles.macroIcon} />
+                <MacroIcon
+                  type="proteins"
+                  size={16}
+                  style={cardStyles.macroIcon}
+                />
                 <Text style={cardStyles.macroText}>
                   {Math.round(macros.proteins)}g
                 </Text>
               </View>
 
               <View style={cardStyles.macroItem}>
-                <Ionicons name="pizza" size={20} style={cardStyles.macroIcon} />
+                <MacroIcon type="fats" size={16} style={cardStyles.macroIcon} />
                 <Text style={cardStyles.macroText}>
                   {Math.round(macros.fats)}g
                 </Text>
               </View>
 
               <View style={cardStyles.macroItem}>
-                <Ionicons
-                  name="ice-cream"
-                  size={20}
+                <MacroIcon
+                  type="carbs"
+                  size={16}
                   style={cardStyles.macroIcon}
                 />
                 <Text style={cardStyles.macroText}>

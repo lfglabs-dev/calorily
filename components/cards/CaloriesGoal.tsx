@@ -6,6 +6,7 @@ import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import { getDailyMacros } from "../../utils/food";
 import useDailyCaloriesGoal from "../../hooks/useDailyCaloriesGoal";
 import { useHealthData } from "../../shared/HealthDataContext";
+import { MacroIcon } from "../common/MacroIcon";
 
 const CaloriesGoalCard = () => {
   const dailyCaloriesGoal = useDailyCaloriesGoal();
@@ -90,7 +91,7 @@ const CaloriesGoalCard = () => {
       fontSize: 14,
     },
     macroIcon: {
-      marginRight: 3,
+      marginRight: 4,
     },
   });
 
@@ -127,8 +128,8 @@ const CaloriesGoalCard = () => {
 
       <View style={dynamicStyles.macroContainer}>
         <View style={dynamicStyles.macroItem}>
-          <Ionicons
-            name="egg"
+          <MacroIcon
+            type="proteins"
             size={16}
             color={scheme === "dark" ? "#AAA" : "gray"}
             style={dynamicStyles.macroIcon}
@@ -139,8 +140,8 @@ const CaloriesGoalCard = () => {
         </View>
 
         <View style={dynamicStyles.macroItem}>
-          <Ionicons
-            name="pizza"
+          <MacroIcon
+            type="fats"
             size={16}
             color={scheme === "dark" ? "#AAA" : "gray"}
             style={dynamicStyles.macroIcon}
@@ -151,8 +152,8 @@ const CaloriesGoalCard = () => {
         </View>
 
         <View style={dynamicStyles.macroItem}>
-          <Ionicons
-            name="ice-cream"
+          <MacroIcon
+            type="carbs"
             size={16}
             color={scheme === "dark" ? "#AAA" : "gray"}
             style={dynamicStyles.macroIcon}
