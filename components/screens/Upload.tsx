@@ -1,12 +1,12 @@
 import React from "react";
 import { View } from "react-native";
 import UploadingMeal from "../addmeal/UploadingMeal";
-import useAddMeal from "../../hooks/useAddMeal";
+import { useAddMeal } from "../../hooks/useAddMeal";
 import useResizedImage from "../../hooks/useResizedImage";
 
 const Upload = ({ route, navigation }) => {
   const { imageUri } = route.params;
-  const addMeal = useAddMeal();
+  const { addMeal } = useAddMeal();
   const resizedImage = useResizedImage(imageUri);
 
   return (

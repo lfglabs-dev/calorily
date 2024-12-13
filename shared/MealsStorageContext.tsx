@@ -550,13 +550,8 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
       });
 
       // Store meal with permanent URI
-      const meal: StoredMeal = {
-        meal_id: mealId,
-        image_uri: permanentUri,
-        // ... other meal properties
-      };
 
-      await insertMeal(meal);
+      await insertMeal(permanentUri, mealId);
     } catch (error) {
       console.error("Error adding meal:", error);
     }

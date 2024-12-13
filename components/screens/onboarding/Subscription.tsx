@@ -12,7 +12,13 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Purchases, { PurchasesPackage } from "react-native-purchases";
 import { useOnboarding } from "../../../shared/OnboardingContext";
 
-export default function Subscription({ navigation }) {
+export default function Subscription({
+  onSubscribe: externalOnSubscribe,
+  setIsSubscribed,
+}: {
+  onSubscribe?: (pkg: PurchasesPackage) => Promise<void>;
+  setIsSubscribed?: (value: boolean) => void;
+}) {
   const [offerings, setOfferings] = useState<PurchasesPackage[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const scheme = useColorScheme();
@@ -45,7 +51,11 @@ export default function Subscription({ navigation }) {
   const handleSubscribe = async (pkg: PurchasesPackage) => {
     try {
       await Purchases.purchasePackage(pkg);
-      setHasCompletedOnboarding(true);
+      if (externalOnSubscribe) {
+        await externalOnSubscribe(pkg);
+      } else {
+        setHasCompletedOnboarding(true);
+      }
     } catch (error) {
       console.error("Error subscribing:", error);
     }
@@ -58,7 +68,11 @@ export default function Subscription({ navigation }) {
         info.entitlements.active !== undefined &&
         Object.keys(info.entitlements.active).length > 0
       ) {
-        setHasCompletedOnboarding(true);
+        if (setIsSubscribed) {
+          setIsSubscribed(true);
+        } else {
+          setHasCompletedOnboarding(true);
+        }
       }
     } catch (error) {
       console.error("Error restoring purchases:", error);

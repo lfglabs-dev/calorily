@@ -46,8 +46,6 @@ const PastMeals = ({
       style={carouselStyles.pagerView}
       initialPage={initialPage}
       overdrag={true}
-      transitionStyle="scroll" // Smooth scrolling animation
-      animationEnabled={true}
     >
       {dailyMeals.length > 0 ? (
         sortedMeals.map((meal, index) =>
