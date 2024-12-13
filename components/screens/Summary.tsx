@@ -9,7 +9,7 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import CaloriesGoalCard from "../cards/CaloriesGoal";
 import PastMeals from "../cards/PastMeals";
-import useAddMeal from "../../hooks/useAddMeal";
+import { useAddMeal } from "../../hooks/useAddMeal";
 import UploadingMeal from "../addmeal/UploadingMeal";
 import useResizedImage from "../../hooks/useResizedImage";
 import ReviewMeal from "../addmeal/ReviewMeal";
@@ -18,7 +18,7 @@ import { useMealsDatabase } from "../../shared/MealsStorageContext";
 const Summary = ({ navigation }) => {
   const scheme = useColorScheme();
   const [status, requestPermission] = ImagePicker.useCameraPermissions();
-  const addMeal = useAddMeal();
+  const { pickImage, loading, addMeal } = useAddMeal();
   const [imageURI, setImageURI] = useState<string | undefined>();
   const resizedImage = useResizedImage(imageURI);
   const [reviewingMeal, setReviewingMeal] = useState(null);
@@ -64,26 +64,6 @@ const Summary = ({ navigation }) => {
       fontSize: 18,
     },
   });
-
-  const pickImage = async () => {
-    if (status.granted) {
-      let imageResult = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false,
-        exif: false,
-        quality: 0.075,
-      });
-      if (!imageResult.canceled && imageResult.assets) {
-        setImageURI(imageResult.assets[0].uri);
-      }
-    } else if (status.canAskAgain) {
-      await requestPermission();
-    } else {
-      alert(
-        "Calorily needs your permission to use your camera. You can allow it in your iOS settings."
-      );
-    }
-  };
 
   const pickFromLibrary = async () => {
     if (libraryStatus.granted) {
