@@ -9,16 +9,13 @@ import {
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useMealsDatabase } from "../../../shared/MealsStorageContext";
+import { OptimisticMeal } from "../../../types";
 
-const FailedMealCard = ({
-  imageUri,
-  mealId,
-  errorMessage,
-}: {
-  imageUri: string;
-  mealId: string;
-  errorMessage: string;
-}) => {
+interface FailedMealCardProps {
+  meal: OptimisticMeal;
+}
+
+const FailedMealCard = ({ meal }: FailedMealCardProps) => {
   const scheme = useColorScheme();
   const { deleteMealById } = useMealsDatabase();
 
@@ -62,13 +59,13 @@ const FailedMealCard = ({
   });
 
   const handleDelete = () => {
-    deleteMealById(mealId);
+    deleteMealById(meal.meal_id);
   };
 
   return (
     <View style={styles.container}>
       <ImageBackground
-        source={{ uri: imageUri }}
+        source={{ uri: meal.image_uri }}
         style={styles.imageBackground}
         imageStyle={{ borderRadius: 8 }}
         blurRadius={3}
@@ -84,7 +81,7 @@ const FailedMealCard = ({
             style={styles.errorIcon}
           />
           <Text style={styles.errorText}>Analysis Failed</Text>
-          <Text style={styles.messageText}>{errorMessage}</Text>
+          <Text style={styles.messageText}>{meal.error_message}</Text>
         </View>
       </ImageBackground>
     </View>

@@ -5,20 +5,14 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  useRef,
 } from "react";
 import * as SQLite from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
 import { useWebSocket } from "./WebSocketContext";
-import {
-  calculateCalories,
-  totalCarbs,
-  totalProteins,
-  totalFats,
-  getMealMacros,
-} from "../utils/food";
-import { StoredMeal, MealStatus, MealAnalysis } from "../types";
+
+import { StoredMeal, MealStatus, MealAnalysis, OptimisticMeal } from "../types";
 import { useHealthData } from "./HealthDataContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "./AuthContext";
 import { getLastSyncTimestamp, setLastSyncTimestamp } from "../utils/storage";
 import { AppState } from "react-native";
@@ -172,7 +166,7 @@ const fetchMealsInRangeAsync = async (
   });
 };
 
-type MealsDatabaseContextProps = {
+interface MealsDatabaseContextProps {
   dailyMeals: StoredMeal[];
   weeklyMeals: StoredMeal[];
   insertMeal: (tmpImageUri: string, mealId?: string) => Promise<void>;
@@ -186,7 +180,9 @@ type MealsDatabaseContextProps = {
   ) => Promise<StoredMeal[]>;
   refreshMeals: () => Promise<void>;
   syncMeals: () => Promise<void>;
-};
+  addOptimisticMeal: (meal_id: string, imageUri: string) => void;
+  updateOptimisticMeal: (meal_id: string, updates: Partial<StoredMeal>) => void;
+}
 
 const MealsDatabaseContext = createContext<MealsDatabaseContextProps>({
   dailyMeals: [],
@@ -197,6 +193,8 @@ const MealsDatabaseContext = createContext<MealsDatabaseContextProps>({
   fetchMealsInRangeAsync: async () => [],
   refreshMeals: async () => {},
   syncMeals: async () => {},
+  addOptimisticMeal: () => {},
+  updateOptimisticMeal: () => {},
 });
 
 type ProviderProps = {
@@ -261,6 +259,8 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   const { lastMessage } = useWebSocket();
   const { saveFoodData } = useHealthData();
   const { jwt } = useAuth();
+  const [meals, setMeals] = useState<OptimisticMeal[]>([]);
+  const optimisticMealsRef = useRef<{ [key: string]: OptimisticMeal }>({});
 
   useEffect(() => {
     console.log("Setting up database...");
@@ -293,7 +293,7 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
         db.transaction((tx) => {
           tx.executeSql(
             `UPDATE meals 
-             SET status = 'failed',
+             SET status = 'error',
              error_message = ?
              WHERE meal_id = ?`,
             [lastMessage.error, lastMessage.meal_id],
@@ -303,7 +303,7 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
                   if (meal.meal_id === lastMessage.meal_id) {
                     return {
                       ...meal,
-                      status: "failed",
+                      status: "error" as MealStatus,
                       error_message: lastMessage.error,
                     };
                   }
@@ -512,6 +512,33 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     return () => unsubscribe();
   }, []);
 
+  const addOptimisticMeal = useCallback((meal_id: string, imageUri: string) => {
+    const optimisticMeal: OptimisticMeal = {
+      meal_id,
+      image_uri: imageUri,
+      status: "uploading",
+      created_at: Date.now(),
+      favorite: false,
+      error_message: null,
+      isOptimistic: true,
+    };
+
+    // Add to both daily and weekly meals
+    setDailyMeals((prev) => [optimisticMeal, ...prev]);
+    setWeeklyMeals((prev) => [optimisticMeal, ...prev]);
+  }, []);
+
+  const updateOptimisticMeal = useCallback(
+    (meal_id: string, updates: Partial<StoredMeal>) => {
+      const updateMealList = (prev: StoredMeal[]) =>
+        prev.map((m) => (m.meal_id === meal_id ? { ...m, ...updates } : m));
+
+      setDailyMeals(updateMealList);
+      setWeeklyMeals(updateMealList);
+    },
+    []
+  );
+
   return (
     <MealsDatabaseContext.Provider
       value={{
@@ -523,6 +550,8 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
         fetchMealsInRangeAsync,
         refreshMeals,
         syncMeals,
+        addOptimisticMeal,
+        updateOptimisticMeal,
       }}
     >
       {children}

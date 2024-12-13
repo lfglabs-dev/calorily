@@ -1,9 +1,9 @@
 import React from "react";
 import { View, Button, StyleSheet } from "react-native";
-import { BottomSheetBackgroundProps } from "@gorhom/bottom-sheet";
+import { BottomSheetHandleProps } from "@gorhom/bottom-sheet";
 import { useBottomSheet } from "@gorhom/bottom-sheet";
 
-export const ReviewMealHandle: React.FC<BottomSheetBackgroundProps> = () => {
+export const ReviewMealHandle: React.FC<BottomSheetHandleProps> = () => {
   const { close } = useBottomSheet();
 
   return (

@@ -13,16 +13,32 @@ import { v4 as uuidv4 } from "uuid";
 import BottomSheet from "@gorhom/bottom-sheet";
 import { CustomBackground } from "./BottomSheet/CustomBackground";
 import { UploadingMealHandle } from "./BottomSheet/UploadingMealHandle";
+import { useMealsDatabase } from "../../shared/MealsStorageContext";
 
 const SNAP_POINTS = ["90%"];
 const MAX_RETRIES = 3;
 
 const UploadingMeal = ({ imageBase64, imageURI, onComplete, onError }) => {
   const { jwt } = useAuth();
-  const scheme = useColorScheme();
-  const [currentMealId, setCurrentMealId] = React.useState(() => uuidv4());
+  const colorScheme = useColorScheme();
+  const { addOptimisticMeal, updateOptimisticMeal } = useMealsDatabase();
+  const [currentMealId] = React.useState(() => uuidv4());
   const bottomSheetRef = React.useRef(null);
-  const retryCount = React.useRef(0);
+  const uploadStarted = React.useRef(false);
+  const abortControllerRef = React.useRef(new AbortController());
+
+  const handleCancel = () => {
+    abortControllerRef.current.abort();
+    bottomSheetRef.current?.close();
+  };
+
+  const handleHide = () => {
+    if (!uploadStarted.current) {
+      addOptimisticMeal(currentMealId, imageURI);
+      uploadStarted.current = true;
+    }
+    bottomSheetRef.current?.close();
+  };
 
   useEffect(() => {
     const uploadMeal = async () => {
@@ -39,20 +55,10 @@ const UploadingMeal = ({ imageBase64, imageURI, onComplete, onError }) => {
             meal_id: currentMealId,
             b64_img: cleanBase64,
           }),
+          signal: abortControllerRef.current.signal,
         });
 
         const data = await response.json();
-
-        if (
-          data.error === "meal already exists" &&
-          retryCount.current < MAX_RETRIES
-        ) {
-          retryCount.current += 1;
-          const newMealId = uuidv4();
-          console.log(`Meal ID conflict, retrying with new ID: ${newMealId}`);
-          setCurrentMealId(newMealId);
-          return;
-        }
 
         if (data.error || !response.ok) {
           throw new Error(
@@ -60,16 +66,32 @@ const UploadingMeal = ({ imageBase64, imageURI, onComplete, onError }) => {
           );
         }
 
+        if (uploadStarted.current) {
+          updateOptimisticMeal(currentMealId, { status: "analyzing" });
+        }
         onComplete(currentMealId);
         bottomSheetRef.current?.close();
       } catch (error) {
+        if (error.name === "AbortError") {
+          return;
+        }
         console.error("Upload error:", error);
+        if (uploadStarted.current) {
+          updateOptimisticMeal(currentMealId, {
+            status: "error",
+            error_message: error.message,
+          });
+        }
         onError(error.message || "Failed to upload image");
         bottomSheetRef.current?.close();
       }
     };
 
     uploadMeal();
+
+    return () => {
+      abortControllerRef.current.abort();
+    };
   }, [imageBase64, currentMealId]);
 
   return (
@@ -78,7 +100,13 @@ const UploadingMeal = ({ imageBase64, imageURI, onComplete, onError }) => {
       index={0}
       snapPoints={SNAP_POINTS}
       backgroundComponent={CustomBackground}
-      handleComponent={UploadingMealHandle}
+      handleComponent={(props) => (
+        <UploadingMealHandle
+          {...props}
+          onCancel={handleCancel}
+          onHide={handleHide}
+        />
+      )}
     >
       <View style={styles.container}>
         <ImageBackground
@@ -92,7 +120,7 @@ const UploadingMeal = ({ imageBase64, imageURI, onComplete, onError }) => {
               styles.overlay,
               {
                 backgroundColor:
-                  scheme === "dark"
+                  colorScheme === "dark"
                     ? "rgba(0, 0, 0, 0.7)"
                     : "rgba(255, 255, 255, 0.7)",
               },
@@ -100,18 +128,18 @@ const UploadingMeal = ({ imageBase64, imageURI, onComplete, onError }) => {
           >
             <ActivityIndicator
               size="large"
-              color={scheme === "dark" ? "#FFF" : "#007AFF"}
+              color={colorScheme === "dark" ? "#FFF" : "#007AFF"}
               style={styles.spinner}
             />
             <Text
               style={[
                 styles.text,
                 {
-                  color: scheme === "dark" ? "#FFF" : "#000",
+                  color: colorScheme === "dark" ? "#FFF" : "#000",
                 },
               ]}
             >
-              Analyzing your meal...
+              Uploading...
             </Text>
           </View>
         </ImageBackground>

@@ -6,7 +6,7 @@ import PastMealCard from "./pastmeals/PastMealCard";
 import EmptyMealCard from "./pastmeals/NoMealCard";
 import LoadingMealCard from "./pastmeals/LoadingMealCard";
 import FailedMealCard from "./pastmeals/FailedMealCard";
-import { StoredMeal } from "../../types";
+import { StoredMeal, OptimisticMeal } from "../../types";
 
 const PastMeals = ({
   onMealPress,
@@ -40,6 +40,20 @@ const PastMeals = ({
     },
   });
 
+  const renderMeal = (meal: OptimisticMeal) => {
+    switch (meal.status) {
+      case "uploading":
+      case "analyzing":
+        return <LoadingMealCard meal={meal} />;
+      case "complete":
+        return <PastMealCard meal={meal} onPress={() => onMealPress(meal)} />;
+      case "error":
+        return <FailedMealCard meal={meal} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <PagerView
       ref={sliderRef}
@@ -48,29 +62,7 @@ const PastMeals = ({
       overdrag={true}
     >
       {dailyMeals.length > 0 ? (
-        sortedMeals.map((meal) =>
-          meal.status === "analyzing" ? (
-            <LoadingMealCard
-              key={meal.meal_id}
-              mealId={meal.meal_id}
-              imageUri={meal.image_uri}
-              createdAt={meal.created_at}
-            />
-          ) : meal.status === "failed" ? (
-            <FailedMealCard
-              key={meal.meal_id}
-              mealId={meal.meal_id}
-              imageUri={meal.image_uri}
-              errorMessage={meal.error_message || "Unknown error occurred"}
-            />
-          ) : (
-            <PastMealCard
-              key={meal.meal_id}
-              meal={meal}
-              onPress={() => onMealPress(meal)}
-            />
-          )
-        )
+        sortedMeals.map((meal) => renderMeal(meal))
       ) : (
         <EmptyMealCard key="empty" />
       )}

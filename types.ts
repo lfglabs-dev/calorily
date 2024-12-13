@@ -23,7 +23,7 @@ export interface StoredMeal {
   error_message?: string;
 }
 
-export type MealStatus = "analyzing" | "complete" | "error" | "failed";
+export type MealStatus = "uploading" | "analyzing" | "complete" | "error";
 
 export interface MealTemplate {
   id?: number;
@@ -33,4 +33,8 @@ export interface MealTemplate {
   proteins: number;
   fats: number;
   favorite: boolean;
+}
+
+export interface OptimisticMeal extends StoredMeal {
+  isOptimistic?: boolean;
 }
