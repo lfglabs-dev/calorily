@@ -15,117 +15,49 @@ import Purchases, {
   CustomerInfo,
   PurchasesOfferings,
 } from "react-native-purchases";
+import { useOnboarding } from "../../shared/OnboardingContext";
 
-const SubscriptionInfo = () => {
-  const scheme = useColorScheme();
-  const [customerInfo, setCustomerInfo] = useState<CustomerInfo>();
-  const [offerings, setOfferings] = useState<PurchasesOfferings>();
+const SubscriptionInfo = ({ dynamicStyles }) => {
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSubscription = async () => {
-      setCustomerInfo(await Purchases.getCustomerInfo());
-      setOfferings(await Purchases.getOfferings());
+    const getSubscriptionStatus = async () => {
+      try {
+        const info = await Purchases.getCustomerInfo();
+        if (
+          info.entitlements.active !== undefined &&
+          Object.keys(info.entitlements.active).length > 0
+        ) {
+          const plan = info.entitlements.active.pro?.productIdentifier.includes(
+            "lifetime"
+          )
+            ? "Lifetime Access"
+            : "Premium";
+          setSubscriptionStatus(plan);
+        } else {
+          setSubscriptionStatus("Free Plan");
+        }
+      } catch (error) {
+        console.error("Error fetching subscription status:", error);
+        setSubscriptionStatus("Unknown");
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchSubscription();
+
+    getSubscriptionStatus();
   }, []);
 
-  const styles = StyleSheet.create({
-    row: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      borderBottomWidth: 0.5,
-      borderBottomColor: scheme === "dark" ? "#555" : "#DDD",
-      paddingVertical: 10,
-      minHeight: 44,
-    },
-    lastRow: {
-      borderBottomWidth: 0,
-    },
-    label: {
-      color: scheme === "dark" ? "#FFF" : "#000",
-      fontSize: 16,
-    },
-    value: {
-      color: scheme === "dark" ? "#AAA" : "#666",
-      fontSize: 16,
-    },
-    badge: {
-      backgroundColor: scheme === "dark" ? "#4CAF50" : "#E8F5E9",
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      borderRadius: 12,
-    },
-    badgeText: {
-      color: scheme === "dark" ? "#FFF" : "#1B5E20",
-      fontSize: 14,
-      fontWeight: "500",
-    },
-  });
-
-  if (!customerInfo) {
-    return (
-      <View style={[styles.row, styles.lastRow]}>
-        <Text style={styles.label}>Loading subscription info...</Text>
-      </View>
-    );
+  if (loading) {
+    return <Text style={dynamicStyles.settingLabel}>Loading...</Text>;
   }
 
-  // Check for lifetime access or any active subscription
-  const hasActiveSubscription =
-    customerInfo.entitlements.active !== undefined &&
-    Object.keys(customerInfo.entitlements.active).length > 0;
-
-  if (hasActiveSubscription) {
-    // Find the specific subscription package
-    const subscriptionPackage = offerings?.all.default.availablePackages.find(
-      (pkg) => customerInfo.activeSubscriptions.includes(pkg.product.identifier)
-    );
-
-    if (subscriptionPackage?.product.subscriptionPeriod === undefined) {
-      // No subscription period means it's a lifetime purchase
-      return (
-        <View style={[styles.row, styles.lastRow]}>
-          <Text style={styles.label}>Subscription Status</Text>
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>Lifetime Access</Text>
-          </View>
-        </View>
-      );
-    }
-
-    // Regular subscription
-    const activeSubscription = customerInfo.activeSubscriptions[0];
-    const expirationDate = customerInfo?.allExpirationDates[activeSubscription];
-    const daysLeft = expirationDate
-      ? Math.ceil(
-          (new Date(expirationDate).valueOf() - Date.now().valueOf()) /
-            (1000 * 60 * 60 * 24)
-        )
-      : 0;
-
-    return (
-      <>
-        <View style={styles.row}>
-          <Text style={styles.label}>Active Plan</Text>
-          <Text style={styles.value}>{subscriptionPackage.product.title}</Text>
-        </View>
-        <View style={[styles.row, styles.lastRow]}>
-          <Text style={styles.label}>Renews in</Text>
-          <Text style={styles.value}>
-            {daysLeft} day{daysLeft !== 1 ? "s" : ""}
-          </Text>
-        </View>
-      </>
-    );
-  }
-
-  // No active subscription
   return (
-    <View style={[styles.row, styles.lastRow]}>
-      <Text style={styles.label}>Subscription Status</Text>
-      <Text style={styles.value}>Free Plan</Text>
-    </View>
+    <>
+      <Text style={dynamicStyles.settingLabel}>Subscription</Text>
+      <Text style={dynamicStyles.settingValue}>{subscriptionStatus}</Text>
+    </>
   );
 };
 
@@ -144,6 +76,7 @@ const Settings = () => {
 
   const { estimateBMR } = useHealthData();
   const scheme = useColorScheme();
+  const { resetOnboarding } = useOnboarding();
 
   useEffect(() => {
     if (settings) {
@@ -256,6 +189,17 @@ const Settings = () => {
     },
     lastSettingRow: {
       borderBottomWidth: 0,
+    },
+    settingItem: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      borderBottomWidth: 0.5,
+      borderBottomColor: scheme === "dark" ? "#555" : "#DDD",
+      paddingVertical: 10,
+    },
+    settingText: {
+      color: scheme === "dark" ? "#FFF" : "#000",
+      fontSize: 16,
     },
   });
 
@@ -381,7 +325,17 @@ const Settings = () => {
 
       <Text style={dynamicStyles.sectionTitle}>Application</Text>
       <View style={dynamicStyles.section}>
-        <SubscriptionInfo />
+        <View style={dynamicStyles.settingItem}>
+          <SubscriptionInfo dynamicStyles={dynamicStyles} />
+        </View>
+        <TouchableOpacity
+          style={[dynamicStyles.settingItem, dynamicStyles.lastSettingRow]}
+          onPress={() => resetOnboarding()}
+        >
+          <Text style={dynamicStyles.settingText}>
+            Reset Onboarding (Debug)
+          </Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );

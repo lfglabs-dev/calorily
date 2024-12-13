@@ -17,14 +17,19 @@ import { MealsDatabaseProvider } from "./shared/MealsStorageContext";
 import { HealthDataProvider } from "./shared/HealthDataContext";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Purchases, { PurchasesPackage } from "react-native-purchases";
-import Paywall from "./components/screens/Paywall";
+import Subscription from "./components/screens/onboarding/Subscription";
 import { AuthProvider, useAuth } from "./shared/AuthContext";
-import LoginScreen from "./components/screens/LoginScreen";
+import Login from "./components/screens/onboarding/Login";
 import { WebSocketProvider } from "./shared/WebSocketContext";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system";
 import { useSharing } from "./hooks/useSharing";
 import Upload from "./components/screens/Upload";
+import { OnboardingProvider, useOnboarding } from "./shared/OnboardingContext";
+import GoalSelection from "./components/screens/onboarding/GoalSelection";
+import HealthPermissions from "./components/screens/onboarding/HealthPermissions";
+import LoadingScreen from "./components/screens/onboarding/LoadingScreen";
+import PromoCode from "./components/screens/onboarding/PromoCode";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -32,7 +37,9 @@ const Tab = createBottomTabNavigator();
 export default function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <OnboardingProvider>
+        <AppContent />
+      </OnboardingProvider>
     </AuthProvider>
   );
 }
@@ -45,6 +52,7 @@ function AppContent() {
   );
   const [isLoginComplete, setIsLoginComplete] = useState(false);
   const { isAuthenticated, isLoading } = useAuth();
+  const { hasCompletedOnboarding } = useOnboarding();
 
   // Configure Purchases
   useEffect(() => {
@@ -86,19 +94,29 @@ function AppContent() {
     }
   };
 
-  // Show login screen if not authenticated
-  if (isLoading) {
-    return <LoginScreen onComplete={() => setIsLoginComplete(true)} />;
-  }
-
-  if (!isAuthenticated && !isLoginComplete) {
-    return <LoginScreen onComplete={() => setIsLoginComplete(true)} />;
+  // Show onboarding flow if not completed OR not authenticated
+  if (!hasCompletedOnboarding || !isAuthenticated) {
+    return (
+      <NavigationContainer theme={theme}>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="GoalSelection" component={GoalSelection} />
+          <Stack.Screen
+            name="HealthPermissions"
+            component={HealthPermissions}
+          />
+          <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="Loading" component={LoadingScreen} />
+          <Stack.Screen name="PromoCode" component={PromoCode} />
+          <Stack.Screen name="Subscription" component={Subscription} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    );
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       {isSubscribed === false ? (
-        <Paywall
+        <Subscription
           onSubscribe={handleSubscribe}
           setIsSubscribed={setIsSubscribed}
         />
