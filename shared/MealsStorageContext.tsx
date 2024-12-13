@@ -420,7 +420,13 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   const syncMeals = async () => {
     try {
       const lastSync = await getLastSyncTimestamp();
-      if (!lastSync) return;
+      if (!lastSync) {
+        // If no last sync, use a timestamp from 24 hours ago
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        await setLastSyncTimestamp(yesterday.toISOString());
+        return;
+      }
 
       const response = await fetch(
         `https://api.calorily.com/meals/sync?since=${lastSync}`,
@@ -451,7 +457,7 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     }
   };
 
-  // Call sync when app becomes active
+  // Call sync when app becomes active or resumes from background
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       if (nextAppState === "active") {
@@ -462,12 +468,14 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     return () => {
       subscription.remove();
     };
-  }, []);
+  }, [jwt]); // Add jwt as dependency
 
   // Initial sync when component mounts
   useEffect(() => {
-    syncMeals();
-  }, []);
+    if (jwt) {
+      syncMeals();
+    }
+  }, [jwt]);
 
   const addMeal = async (imageUri: string, mealId: string) => {
     try {

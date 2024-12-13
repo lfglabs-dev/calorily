@@ -82,7 +82,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       if (lastMessage.event === "analysis_failed") {
         mealService.updateMeal({
           meal_id: lastMessage.meal_id,
-          status: "failed",
+          status: "error",
           error_message: lastMessage.error,
         });
       } else if (lastMessage.event === "analysis_complete") {
