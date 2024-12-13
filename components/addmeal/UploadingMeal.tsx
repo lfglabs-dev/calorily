@@ -6,12 +6,13 @@ import {
   StyleSheet,
   ImageBackground,
   useColorScheme,
+  TouchableOpacity,
 } from "react-native";
 import { useAuth } from "../../shared/AuthContext";
 import { v4 as uuidv4 } from "uuid";
 import BottomSheet from "@gorhom/bottom-sheet";
 import { CustomBackground } from "./BottomSheet/CustomBackground";
-import { CustomHandle } from "./BottomSheet/CustomHandle";
+import { UploadingMealHandle } from "./BottomSheet/UploadingMealHandle";
 
 const SNAP_POINTS = ["90%"];
 const MAX_RETRIES = 3;
@@ -77,7 +78,7 @@ const UploadingMeal = ({ imageBase64, imageURI, onComplete, onError }) => {
       index={0}
       snapPoints={SNAP_POINTS}
       backgroundComponent={CustomBackground}
-      handleComponent={CustomHandle}
+      handleComponent={UploadingMealHandle}
     >
       <View style={styles.container}>
         <ImageBackground
@@ -110,7 +111,7 @@ const UploadingMeal = ({ imageBase64, imageURI, onComplete, onError }) => {
                 },
               ]}
             >
-              Uploading...
+              Analyzing your meal...
             </Text>
           </View>
         </ImageBackground>

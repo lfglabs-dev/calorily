@@ -149,4 +149,33 @@ export const styles = (colorScheme: StylesProps["colorScheme"]) =>
     backgroundImage: {
       borderRadius: 10,
     },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      width: "100%",
+      paddingHorizontal: 15,
+      paddingTop: 15,
+      position: "absolute",
+      zIndex: 1,
+      top: 0,
+    },
+    cancelButton: {
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      paddingHorizontal: 15,
+      paddingVertical: 8,
+      borderRadius: 20,
+      alignSelf: "flex-start",
+    },
+    hideButton: {
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      paddingHorizontal: 15,
+      paddingVertical: 8,
+      borderRadius: 20,
+      alignSelf: "flex-end",
+    },
+    buttonText: {
+      color: "#FFF",
+      fontSize: 16,
+      fontWeight: "500",
+    },
   });

@@ -9,7 +9,7 @@ import {
 import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { styles } from "./styles";
 import { CustomBackground } from "./BottomSheet/CustomBackground";
-import { CustomHandle } from "./BottomSheet/CustomHandle";
+import { ReviewMealHandle } from "./BottomSheet/ReviewMealHandle";
 import { IngredientItem } from "./IngredientItem";
 import { calculateCalories } from "../../utils/food";
 import LongTextInputDialog from "./FixBugDialog";
@@ -89,7 +89,7 @@ const ReviewMeal = ({ mealData, onUpdate, onClose }: ReviewMealProps) => {
       snapPoints={SNAP_POINTS}
       onClose={onClose}
       backgroundComponent={CustomBackground}
-      handleComponent={CustomHandle}
+      handleComponent={ReviewMealHandle}
     >
       <View style={styles(colorScheme).contentContainer}>
         <View style={styles(colorScheme).titleContainer}>
