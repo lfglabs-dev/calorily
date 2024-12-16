@@ -14,21 +14,36 @@ export const useAddMeal = () => {
 
   const handleImageUpload = async (imageUri: string) => {
     const mealId = uuidv4();
+    console.log("Starting image upload:", { mealId, imageUri });
 
     try {
+      console.log("Adding optimistic meal...");
       addOptimisticMeal(mealId, imageUri);
-      await mealService.uploadMeal(imageUri, mealId, jwt);
+
+      console.log("Uploading to server...");
+      const response = await mealService.uploadMeal(imageUri, mealId, jwt);
+      console.log("Server response:", response);
+
+      console.log("Updating optimistic meal status to analyzing...");
       updateOptimisticMeal(mealId, { status: "analyzing" });
 
+      console.log("Inserting meal into local DB...");
       await insertMeal({
         meal_id: mealId,
         image_uri: imageUri,
         status: "analyzing",
       });
 
+      console.log("Upload process completed successfully");
       return true;
     } catch (error) {
-      console.error("Error uploading meal:", error);
+      console.error("Error uploading meal:", {
+        error,
+        message: error.message,
+        stack: error.stack,
+        response: error.response?.text ? await error.response.text() : null,
+      });
+
       updateOptimisticMeal(mealId, {
         status: "error",
         error_message: error.message || "Failed to upload image",

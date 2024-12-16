@@ -16,32 +16,49 @@ export const mealService = {
     mealId: string,
     jwt: string
   ): Promise<UploadMealResponse> {
-    const base64 = await FileSystem.readAsStringAsync(imageUri, {
-      encoding: FileSystem.EncodingType.Base64,
-    });
+    try {
+      const base64 = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
-    // Just send the raw base64 string without data URI prefix
-    const response = await fetch("https://api.calorily.com/meals", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${jwt}`,
-      },
-      body: JSON.stringify({
-        meal_id: mealId,
-        b64_img: base64, // Send raw base64 string
-      }),
-    });
+      // Just send the raw base64 string without data URI prefix
+      const response = await fetch("https://api.calorily.com/meals", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${jwt}`,
+        },
+        body: JSON.stringify({
+          meal_id: mealId,
+          b64_img: base64, // Send raw base64 string
+        }),
+      });
 
-    const data = await response.json();
+      const responseText = await response.text();
 
-    if (data.error || !response.ok) {
-      throw new Error(
-        data.error?.message || data.message || "Failed to upload image"
-      );
+      try {
+        const json = JSON.parse(responseText);
+        console.log("Parsed JSON:", JSON.stringify(json, null, 2));
+
+        if (json.error || !response.ok) {
+          throw new Error(
+            json.error?.message || json.message || "Failed to upload image"
+          );
+        }
+
+        return json;
+      } catch (parseError) {
+        console.error("JSON parse error:", {
+          parseError,
+          responseText,
+          contentType: response.headers.get("content-type"),
+        });
+        throw parseError;
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      throw error;
     }
-
-    return data;
   },
 
   updateMeal: async (

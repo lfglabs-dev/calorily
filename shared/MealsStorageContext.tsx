@@ -95,20 +95,29 @@ const fetchMealsSinceTimestamp = async (
 };
 
 const deleteMealFromDB = async (mealId: string): Promise<void> => {
+  console.log("Deleting meal from DB:", mealId);
   return new Promise((resolve, reject) => {
-    db.transaction((tx) => {
-      tx.executeSql(
-        "DELETE FROM meals WHERE meal_id = ?;",
-        [mealId],
-        () => {
-          resolve();
-        },
-        (_, error) => {
-          reject(error);
-          return false;
-        }
-      );
-    });
+    db.transaction(
+      (tx) => {
+        tx.executeSql(
+          "DELETE FROM meals WHERE meal_id = ?",
+          [mealId],
+          (_, result) => {
+            console.log("Delete result:", result);
+            resolve();
+          },
+          (_, error) => {
+            console.error("SQL Error in delete:", error);
+            reject(error);
+            return false;
+          }
+        );
+      },
+      (error) => {
+        console.error("Transaction Error in delete:", error);
+        reject(error);
+      }
+    );
   });
 };
 
@@ -265,19 +274,25 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   const [meals, setMeals] = useState<OptimisticMeal[]>([]);
   const optimisticMealsRef = useRef<{ [key: string]: OptimisticMeal }>({});
 
+  // Add debug logging
   useEffect(() => {
-    console.log("Setting up database...");
-    setupDatabaseAsync()
-      .then(() => {
-        console.log("Database setup complete, refreshing meals...");
-        return refreshMeals();
-      })
-      .then(() => {
+    console.log("MealsDatabaseProvider mounted");
+    const initializeMeals = async () => {
+      console.log("Starting database initialization...");
+      try {
+        console.log("Setting up database...");
+        await setupDatabaseAsync();
+        console.log("Database setup complete");
+
+        console.log("Refreshing meals...");
+        await refreshMeals();
         console.log("Initial meal refresh complete");
-      })
-      .catch((error) => {
-        console.error("Error during setup:", error);
-      });
+      } catch (error) {
+        console.error("Error initializing meals:", error);
+      }
+    };
+
+    initializeMeals();
   }, []);
 
   useEffect(() => {
@@ -323,6 +338,7 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   }, [lastMessage]);
 
   const refreshMeals = async () => {
+    console.log("refreshMeals called");
     const startOfWeek = new Date();
     startOfWeek.setDate(
       startOfWeek.getDate() -
@@ -332,31 +348,19 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     startOfWeek.setHours(0, 0, 0, 0);
     const timestampWeek = Math.floor(startOfWeek.getTime() / 1000);
 
-    console.log("Fetching meals since:", new Date(timestampWeek * 1000));
-    const mealsSinceWeek = await fetchMealsSinceTimestamp(timestampWeek);
+    try {
+      const mealsSinceWeek = await fetchMealsSinceTimestamp(timestampWeek);
 
-    // Preserve optimistic meals when refreshing
-    setWeeklyMeals((prev) => {
-      const optimisticMeals = prev.filter((meal) => "isOptimistic" in meal);
-      const nonOptimisticNewMeals = mealsSinceWeek.filter(
-        (newMeal) =>
-          !optimisticMeals.some((opt) => opt.meal_id === newMeal.meal_id)
-      );
-      return [...optimisticMeals, ...nonOptimisticNewMeals].sort(
-        (a, b) => b.created_at - a.created_at
-      );
-    });
-
-    setDailyMeals((prev) => {
-      const optimisticMeals = prev.filter((meal) => "isOptimistic" in meal);
-      const nonOptimisticNewMeals = mealsSinceWeek.filter(
-        (newMeal) =>
-          !optimisticMeals.some((opt) => opt.meal_id === newMeal.meal_id)
-      );
-      return [...optimisticMeals, ...nonOptimisticNewMeals].sort(
-        (a, b) => b.created_at - a.created_at
-      );
-    });
+      // Preserve optimistic meals
+      setWeeklyMeals((prev) => {
+        const optimisticMeals = prev.filter((m) => m.status === "uploading");
+        return [...optimisticMeals, ...mealsSinceWeek].sort(
+          (a, b) => b.created_at - a.created_at
+        );
+      });
+    } catch (error) {
+      console.error("Error refreshing meals:", error);
+    }
   };
 
   const insertMeal = async (
@@ -366,10 +370,16 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
       const timestamp = Date.now();
       const mealId = meal.meal_id || uuidv4();
 
-      console.log("Inserting meal:", { mealId, tmpImageURI: meal.image_uri });
+      console.log("Starting meal insertion:", {
+        mealId,
+        imageUri: meal.image_uri,
+        status: meal.status,
+        timestamp,
+      });
 
       db.transaction(
         (tx) => {
+          console.log("Beginning insert transaction");
           tx.executeSql(
             `INSERT INTO meals (
               meal_id, 
@@ -387,17 +397,22 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
               meal.favorite || 0,
               meal.last_analysis ? JSON.stringify(meal.last_analysis) : null,
             ],
-            () => {
+            (_, result) => {
+              console.log("Insert result:", result);
               console.log("Meal inserted successfully");
               eventBus.emit("mealsUpdated");
               resolve();
+            },
+            (_, error) => {
+              console.error("SQL Error in insert:", error);
+              reject(error);
+              return false;
             }
           );
         },
         (error) => {
-          console.error("Error in transaction:", error);
+          console.error("Transaction Error in insert:", error);
           reject(error);
-          return false;
         }
       );
     });
@@ -453,18 +468,20 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   const syncMeals = async () => {
     try {
       const lastSync = await getLastSyncTimestamp();
-      if (!lastSync || !jwt) {
-        return;
-      }
+      if (!lastSync || !jwt) return;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
       const response = await fetch(
         `https://api.calorily.com/meals/sync?since=${lastSync}`,
         {
-          headers: {
-            Authorization: `Bearer ${jwt}`,
-          },
+          headers: { Authorization: `Bearer ${jwt}` },
+          signal: controller.signal,
         }
       );
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         console.log(`Sync failed with status: ${response.status}`);
@@ -488,8 +505,11 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
 
       await setLastSyncTimestamp(new Date().toISOString());
     } catch (error) {
-      console.error("Error during sync:", error);
-      // Don't throw, just log the error
+      if (error.name === "AbortError") {
+        console.log("Sync request timed out");
+      } else {
+        console.error("Error during sync:", error);
+      }
     }
   };
 
