@@ -5,6 +5,8 @@ import {
   TouchableOpacity,
   ImageBackground,
   View,
+  GestureResponderEvent,
+  Alert,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -138,8 +140,13 @@ const PastMealCard = ({
     },
   });
 
-  const handleDelete = () => {
-    deleteMealById(meal.meal_id);
+  const handleDelete = async (event: GestureResponderEvent) => {
+    event.stopPropagation();
+    try {
+      await deleteMealById(meal.meal_id);
+    } catch (error) {
+      Alert.alert("Error", "Failed to delete meal");
+    }
   };
 
   const handleCardPress = () => {
@@ -161,6 +168,7 @@ const PastMealCard = ({
           <TouchableOpacity
             style={cardStyles.closeButton}
             onPress={handleDelete}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <FontAwesome name="close" size={24} color="#A9A9A9" />
           </TouchableOpacity>

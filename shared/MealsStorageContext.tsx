@@ -404,11 +404,16 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   };
 
   const deleteMealById = async (mealId: string) => {
+    // Optimistically remove from state
+    setDailyMeals((prev) => prev.filter((meal) => meal.meal_id !== mealId));
+    setWeeklyMeals((prev) => prev.filter((meal) => meal.meal_id !== mealId));
+
     try {
       await deleteMealFromDB(mealId);
-      await refreshMeals();
     } catch (error) {
       console.error("Error deleting meal:", error);
+      // If deletion fails, refresh meals to restore state
+      await refreshMeals();
       throw error;
     }
   };
