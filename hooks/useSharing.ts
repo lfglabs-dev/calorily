@@ -11,24 +11,31 @@ export const useSharing = () => {
   const { handleImagesUpload } = useAddMeal();
 
   useEffect(() => {
-    const handleSharedContent = async (event: { url?: string }) => {
+    const handleSharedContent = async (event: { url?: string | string[] }) => {
       if (event?.url) {
         try {
-          // On iOS, the shared file is already in our app's container
-          const imageUri =
-            Platform.OS === "ios"
-              ? event.url
-              : `${FileSystem.documentDirectory}${event.url.split("/").pop()}`;
+          // Handle both single string and array of strings
+          const urls = Array.isArray(event.url) ? event.url : [event.url];
+          const imageUris = await Promise.all(
+            urls.map(async (url) => {
+              // On iOS, the shared file is already in our app's container
+              const imageUri =
+                Platform.OS === "ios"
+                  ? url
+                  : `${FileSystem.documentDirectory}${url.split("/").pop()}`;
 
-          if (Platform.OS !== "ios") {
-            // For Android, copy the file
-            await FileSystem.copyAsync({
-              from: event.url,
-              to: imageUri,
-            });
-          }
+              if (Platform.OS !== "ios") {
+                // For Android, copy the file
+                await FileSystem.copyAsync({
+                  from: url,
+                  to: imageUri,
+                });
+              }
+              return imageUri;
+            })
+          );
 
-          const result = await handleImagesUpload([imageUri]);
+          const result = await handleImagesUpload(imageUris);
           if (result) {
             navigation.navigate("Summary");
           }

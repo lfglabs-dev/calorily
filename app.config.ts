@@ -34,6 +34,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       CFBundleURLTypes: [
         {
           CFBundleURLSchemes: ["calorily"],
+          CFBundleURLName: "com.calorily.app",
+          LSSupportsMultipleItems: true,
         },
       ],
       NSPhotoLibraryUsageDescription:
