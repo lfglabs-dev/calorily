@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo } from "react";
 import PagerView from "react-native-pager-view";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import PastMealCard from "./pastmeals/PastMealCard";
 import EmptyMealCard from "./pastmeals/NoMealCard";
@@ -62,9 +62,13 @@ const PastMeals = ({
       overdrag={true}
     >
       {dailyMeals.length > 0 ? (
-        sortedMeals.map((meal) => renderMeal(meal))
+        sortedMeals.map((meal) => (
+          <View key={meal.meal_id}>{renderMeal(meal)}</View>
+        ))
       ) : (
-        <EmptyMealCard key="empty" />
+        <View key="empty">
+          <EmptyMealCard />
+        </View>
       )}
     </PagerView>
   );

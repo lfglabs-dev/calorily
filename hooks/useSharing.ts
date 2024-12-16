@@ -1,43 +1,37 @@
 import { useEffect } from "react";
 import * as FileSystem from "expo-file-system";
 import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { Linking, Platform } from "react-native";
-
-type RootStackParamList = {
-  Upload: { imageUri: string };
-};
+import { useAddMeal } from "./useAddMeal";
+import { MainTabParamList } from "../navigation/types";
 
 export const useSharing = () => {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
+  const { handleImageUpload } = useAddMeal();
 
   useEffect(() => {
     const handleSharedContent = async (event: { url?: string }) => {
       if (event?.url) {
         try {
-          // On iOS, the shared file is already in our app's container, so we can use it directly
-          if (Platform.OS === "ios") {
-            navigation.navigate("Upload", {
-              imageUri: event.url,
+          // On iOS, the shared file is already in our app's container
+          const imageUri =
+            Platform.OS === "ios"
+              ? event.url
+              : `${FileSystem.documentDirectory}${event.url.split("/").pop()}`;
+
+          if (Platform.OS !== "ios") {
+            // For Android, copy the file
+            await FileSystem.copyAsync({
+              from: event.url,
+              to: imageUri,
             });
-            return;
           }
 
-          // For Android or other platforms, we might need to copy the file
-          const filename = event.url.split("/").pop();
-          if (!filename) return;
-
-          const destination = `${FileSystem.documentDirectory}${filename}`;
-
-          await FileSystem.copyAsync({
-            from: event.url,
-            to: destination,
-          });
-
-          navigation.navigate("Upload", {
-            imageUri: destination,
-          });
+          const result = await handleImageUpload(imageUri);
+          if (result) {
+            navigation.navigate("Summary");
+          }
         } catch (error) {
           console.error("Error handling shared content:", error);
         }

@@ -11,11 +11,9 @@ import {
   Keyboard,
 } from "react-native";
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
-import * as ImagePicker from "expo-image-picker";
-import UploadingMeal from "../addmeal/UploadingMeal";
-import useResizedImage from "../../hooks/useResizedImage";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { calculateCalories } from "../../utils/food";
+import { v4 as uuidv4 } from "uuid";
 
 interface NewMealFormData {
   imageUri?: string;
@@ -29,12 +27,14 @@ interface NewMealFormData {
   fatsDisplay?: string;
 }
 
-const NewMeal = () => {
+interface NewMealProps {
+  onPress: () => Promise<void>;
+}
+
+const NewMeal: React.FC<NewMealProps> = ({ onPress }) => {
   const [formData, setFormData] = useState<NewMealFormData>({});
-  const [isUploading, setIsUploading] = useState(false);
   const { insertMeal } = useMealsDatabase();
   const scheme = useColorScheme();
-  const resizedImage = useResizedImage(formData.imageUri);
 
   const calories = React.useMemo(() => {
     return calculateCalories({
@@ -45,26 +45,6 @@ const NewMeal = () => {
       fats: formData.fats || 0,
     });
   }, [formData.carbs, formData.proteins, formData.fats]);
-
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false,
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets[0]) {
-        setFormData((prev) => ({
-          ...prev,
-          imageUri: result.assets[0].uri,
-        }));
-      }
-    } catch (error) {
-      console.error("Error picking image:", error);
-      Alert.alert("Error", "Failed to select image");
-    }
-  };
 
   const handleInputChange = (field: keyof NewMealFormData, value: string) => {
     const numericField = field as "carbs" | "proteins" | "fats";
@@ -91,21 +71,33 @@ const NewMeal = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.imageUri || !resizedImage) {
-      Alert.alert("Error", "Please select an image first");
-      return;
-    }
-
-    setIsUploading(true);
     try {
-      await insertMeal(formData.imageUri);
+      const analysis: MealAnalysis = {
+        meal_id: uuidv4(),
+        meal_name: formData.mealName || "Custom Meal",
+        ingredients: [
+          {
+            name: formData.mealName || "Custom Meal",
+            amount: 100,
+            carbs: formData.carbs || 0,
+            proteins: formData.proteins || 0,
+            fats: formData.fats || 0,
+          },
+        ],
+        timestamp: new Date().toISOString(),
+      };
+
+      await insertMeal({
+        image_uri: formData.imageUri,
+        status: "complete",
+        last_analysis: analysis,
+      });
+
       setFormData({});
       Alert.alert("Success", "Meal added successfully");
     } catch (error) {
       console.error("Error adding meal:", error);
       Alert.alert("Error", "Failed to add meal");
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -202,23 +194,6 @@ const NewMeal = () => {
     },
   });
 
-  if (isUploading && formData.imageUri && resizedImage) {
-    return (
-      <UploadingMeal
-        imageBase64={resizedImage.base64}
-        imageURI={formData.imageUri}
-        onComplete={(mealId) => {
-          setIsUploading(false);
-          setFormData({});
-        }}
-        onError={(error) => {
-          setIsUploading(false);
-          Alert.alert("Error", error.toString());
-        }}
-      />
-    );
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.inputContainer}>
@@ -288,10 +263,7 @@ const NewMeal = () => {
         </View>
 
         <View style={styles.imageButtonContainer}>
-          <TouchableOpacity
-            style={styles.selectPhotoButton}
-            onPress={pickImage}
-          >
+          <TouchableOpacity style={styles.selectPhotoButton} onPress={onPress}>
             <Text style={styles.buttonText}>
               {formData.imageUri ? "Change Photo" : "Select Photo"}
             </Text>

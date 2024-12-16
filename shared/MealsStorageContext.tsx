@@ -18,6 +18,7 @@ import { getLastSyncTimestamp, setLastSyncTimestamp } from "../utils/storage";
 import { AppState } from "react-native";
 import { mealService } from "../services/mealService";
 import { eventBus } from "../services/eventBus";
+import { v4 as uuidv4 } from "uuid";
 
 const db = SQLite.openDatabase("meals.db");
 
@@ -169,7 +170,9 @@ const fetchMealsInRangeAsync = async (
 interface MealsDatabaseContextProps {
   dailyMeals: StoredMeal[];
   weeklyMeals: StoredMeal[];
-  insertMeal: (tmpImageUri: string, mealId?: string) => Promise<void>;
+  insertMeal: (
+    meal: Pick<StoredMeal, "image_uri"> & Partial<StoredMeal>
+  ) => Promise<void>;
   deleteMealById: (mealId: string) => Promise<void>;
   updateMeal: (
     updates: Partial<StoredMeal> & { meal_id: string }
@@ -337,41 +340,46 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   };
 
   const insertMeal = async (
-    tmpImageURI: string,
-    mealId?: string
-  ): Promise<void> => {
-    console.log("Inserting meal:", { tmpImageURI, mealId });
-    const fileName = tmpImageURI.split("/").pop();
-    const imagePath = FileSystem.documentDirectory + fileName;
-    await FileSystem.copyAsync({
-      from: tmpImageURI,
-      to: imagePath,
-    });
-
+    meal: Pick<StoredMeal, "image_uri"> & Partial<StoredMeal>
+  ) => {
     return new Promise<void>((resolve, reject) => {
-      db.transaction((tx) => {
-        tx.executeSql(
-          `INSERT INTO meals (
-            meal_id, image_uri, created_at, status
-          ) VALUES (?, ?, ?, ?);`,
-          [
-            mealId || null,
-            imagePath,
-            Math.floor(Date.now() / 1000),
-            "analyzing",
-          ],
-          () => {
-            console.log("Meal inserted successfully");
-            refreshMeals();
-            resolve();
-          },
-          (_, error) => {
-            console.error("Error inserting meal:", error);
-            reject(error);
-            return false;
-          }
-        );
-      });
+      const timestamp = Date.now();
+      const mealId = meal.meal_id || uuidv4();
+
+      console.log("Inserting meal:", { mealId, tmpImageURI: meal.image_uri });
+
+      db.transaction(
+        (tx) => {
+          tx.executeSql(
+            `INSERT INTO meals (
+              meal_id, 
+              image_uri, 
+              created_at,
+              status,
+              favorite,
+              last_analysis
+            ) VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+              mealId,
+              meal.image_uri,
+              Math.floor(timestamp / 1000),
+              meal.status || "complete",
+              meal.favorite || 0,
+              meal.last_analysis ? JSON.stringify(meal.last_analysis) : null,
+            ],
+            () => {
+              console.log("Meal inserted successfully");
+              eventBus.emit("mealsUpdated");
+              resolve();
+            }
+          );
+        },
+        (error) => {
+          console.error("Error in transaction:", error);
+          reject(error);
+          return false;
+        }
+      );
     });
   };
 
@@ -420,11 +428,7 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   const syncMeals = async () => {
     try {
       const lastSync = await getLastSyncTimestamp();
-      if (!lastSync) {
-        // If no last sync, use a timestamp from 24 hours ago
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        await setLastSyncTimestamp(yesterday.toISOString());
+      if (!lastSync || !jwt) {
         return;
       }
 
@@ -437,11 +441,13 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
         }
       );
 
-      if (!response.ok) throw new Error("Sync failed");
+      if (!response.ok) {
+        console.error(`Sync failed with status: ${response.status}`);
+        return;
+      }
 
       const { analyses } = await response.json();
 
-      // Update each meal that has a newer analysis
       for (const analysis of analyses) {
         await updateMealData(analysis.meal_id, {
           meal_name: analysis.meal_name,
@@ -450,10 +456,10 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
         });
       }
 
-      // Update last sync timestamp
       await setLastSyncTimestamp(new Date().toISOString());
     } catch (error) {
-      console.error("Error syncing meals:", error);
+      console.error("Error during sync:", error);
+      // Don't throw, just log the error
     }
   };
 
@@ -498,8 +504,11 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
       });
 
       // Store meal with permanent URI
-
-      await insertMeal(permanentUri, mealId);
+      await insertMeal({
+        meal_id: mealId,
+        image_uri: permanentUri,
+        status: "analyzing",
+      });
     } catch (error) {
       console.error("Error adding meal:", error);
     }
@@ -525,15 +534,20 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
       meal_id,
       image_uri: imageUri,
       status: "uploading",
-      created_at: Date.now(),
+      created_at: Math.floor(Date.now() / 1000),
       favorite: false,
       error_message: null,
       isOptimistic: true,
     };
 
-    // Add to both daily and weekly meals
-    setDailyMeals((prev) => [optimisticMeal, ...prev]);
-    setWeeklyMeals((prev) => [optimisticMeal, ...prev]);
+    setDailyMeals((prev) => {
+      if (prev.some((meal) => meal.meal_id === meal_id)) return prev;
+      return [optimisticMeal, ...prev];
+    });
+    setWeeklyMeals((prev) => {
+      if (prev.some((meal) => meal.meal_id === meal_id)) return prev;
+      return [optimisticMeal, ...prev];
+    });
   }, []);
 
   const updateOptimisticMeal = useCallback(

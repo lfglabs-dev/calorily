@@ -21,18 +21,16 @@ import Subscription from "./components/screens/onboarding/Subscription";
 import { AuthProvider, useAuth } from "./shared/AuthContext";
 import Login from "./components/screens/onboarding/Login";
 import { WebSocketProvider } from "./shared/WebSocketContext";
-import * as Sharing from "expo-sharing";
-import * as FileSystem from "expo-file-system";
 import { useSharing } from "./hooks/useSharing";
-import Upload from "./components/screens/Upload";
 import { OnboardingProvider, useOnboarding } from "./shared/OnboardingContext";
 import GoalSelection from "./components/screens/onboarding/GoalSelection";
 import HealthPermissions from "./components/screens/onboarding/HealthPermissions";
 import LoadingScreen from "./components/screens/onboarding/LoadingScreen";
 import PromoCode from "./components/screens/onboarding/PromoCode";
+import { RootStackParamList, MainTabParamList } from "./navigation/types";
 
-const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export default function App() {
   return (
@@ -132,11 +130,6 @@ function AppContent() {
                     <Stack.Screen
                       name="MainTabs"
                       component={TabNavigator}
-                      options={{ headerShown: false }}
-                    />
-                    <Stack.Screen
-                      name="Upload"
-                      component={Upload}
                       options={{ headerShown: false }}
                     />
                   </Stack.Navigator>

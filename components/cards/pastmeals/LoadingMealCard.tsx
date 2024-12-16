@@ -15,10 +15,20 @@ const LoadingMealCard = ({ meal }) => {
   const colorScheme = useColorScheme();
   const { deleteMealById } = useMealsDatabase();
   const [statusMessage, setStatusMessage] = useState(
-    meal.status === "uploading" ? "Uploading..." : "Analyzing your meal..."
+    meal.status === "uploading"
+      ? "Processing your photo..."
+      : "Analyzing your meal..."
   );
 
-  const statusMessages = [
+  const uploadingMessages = [
+    "Processing your photo...",
+    "Optimizing image quality...",
+    "Preparing for upload...",
+    "Sending to our servers...",
+    "Almost there...", // This will be the final message for uploading
+  ];
+
+  const analyzingMessages = [
     "Analyzing your meal...",
     "Identifying ingredients...",
     "Calculating portions...",
@@ -27,15 +37,25 @@ const LoadingMealCard = ({ meal }) => {
   ];
 
   useEffect(() => {
-    if (meal.status === "analyzing") {
-      let currentIndex = 0;
-      const interval = setInterval(() => {
-        currentIndex = (currentIndex + 1) % statusMessages.length;
-        setStatusMessage(statusMessages[currentIndex]);
-      }, 2000);
+    let currentIndex = 0;
+    const messages =
+      meal.status === "uploading" ? uploadingMessages : analyzingMessages;
 
-      return () => clearInterval(interval);
-    }
+    const interval = setInterval(() => {
+      if (
+        meal.status === "uploading" &&
+        currentIndex >= uploadingMessages.length - 1
+      ) {
+        // Stop at the last uploading message
+        clearInterval(interval);
+        return;
+      }
+
+      currentIndex = (currentIndex + 1) % messages.length;
+      setStatusMessage(messages[currentIndex]);
+    }, 2000);
+
+    return () => clearInterval(interval);
   }, [meal.status]);
 
   return (
