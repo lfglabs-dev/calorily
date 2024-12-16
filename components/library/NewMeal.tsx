@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -36,6 +36,28 @@ const NewMeal: React.FC<NewMealProps> = ({ onPress, prefilledMeal }) => {
   const [formData, setFormData] = useState<NewMealFormData>({});
   const { insertMeal } = useMealsDatabase();
   const scheme = useColorScheme();
+
+  useEffect(() => {
+    if (prefilledMeal) {
+      const roundToOneDecimal = (num?: number) =>
+        num !== undefined ? Number(num.toFixed(1)) : undefined;
+
+      const carbs = roundToOneDecimal(prefilledMeal.carbs);
+      const proteins = roundToOneDecimal(prefilledMeal.proteins);
+      const fats = roundToOneDecimal(prefilledMeal.fats);
+
+      setFormData({
+        mealName: prefilledMeal.name,
+        imageUri: prefilledMeal.image_uri,
+        carbs,
+        proteins,
+        fats,
+        carbsDisplay: carbs?.toString(),
+        proteinsDisplay: proteins?.toString(),
+        fatsDisplay: fats?.toString(),
+      });
+    }
+  }, [prefilledMeal]);
 
   const calories = React.useMemo(() => {
     return calculateCalories({
@@ -260,7 +282,7 @@ const NewMeal: React.FC<NewMealProps> = ({ onPress, prefilledMeal }) => {
       <View style={styles.buttonContainer}>
         <View style={styles.caloriesContainer}>
           <Text style={styles.caloriesLabel}>Total Calories</Text>
-          <Text style={styles.calories}>{calories} kcal</Text>
+          <Text style={styles.calories}>{calories.toFixed(1)} kcal</Text>
         </View>
 
         <View style={styles.imageButtonContainer}>
