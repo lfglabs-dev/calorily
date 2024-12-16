@@ -8,7 +8,7 @@ import { MainTabParamList } from "../navigation/types";
 
 export const useSharing = () => {
   const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
-  const { handleImageUpload } = useAddMeal();
+  const { handleImagesUpload } = useAddMeal();
 
   useEffect(() => {
     const handleSharedContent = async (event: { url?: string }) => {
@@ -28,7 +28,7 @@ export const useSharing = () => {
             });
           }
 
-          const result = await handleImageUpload(imageUri);
+          const result = await handleImagesUpload([imageUri]);
           if (result) {
             navigation.navigate("Summary");
           }

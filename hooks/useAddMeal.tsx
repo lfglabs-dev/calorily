@@ -12,42 +12,53 @@ export const useAddMeal = () => {
     useMealsDatabase();
   const { jwt } = useAuth();
 
-  const handleImageUpload = async (imageUri: string) => {
-    const mealId = uuidv4();
-    console.log("Starting image upload:", { mealId, imageUri });
+  const handleImagesUpload = async (imageUris: string[]) => {
+    console.log("Starting multiple image upload:", imageUris);
+
+    const uploadPromises = imageUris.map(async (imageUri) => {
+      const mealId = uuidv4();
+      console.log("Processing image:", { mealId, imageUri });
+
+      try {
+        console.log("Adding optimistic meal...");
+        addOptimisticMeal(mealId, imageUri);
+
+        console.log("Uploading to server...");
+        const response = await mealService.uploadMeal(imageUri, mealId, jwt);
+        console.log("Server response:", response);
+
+        console.log("Updating optimistic meal status to analyzing...");
+        updateOptimisticMeal(mealId, { status: "analyzing" });
+
+        console.log("Inserting meal into local DB...");
+        await insertMeal({
+          meal_id: mealId,
+          image_uri: imageUri,
+          status: "analyzing",
+        });
+
+        return true;
+      } catch (error) {
+        console.error("Error uploading meal:", {
+          error,
+          message: error.message,
+          stack: error.stack,
+          response: error.response?.text ? await error.response.text() : null,
+        });
+
+        updateOptimisticMeal(mealId, {
+          status: "error",
+          error_message: error.message || "Failed to upload image",
+        });
+        return false;
+      }
+    });
 
     try {
-      console.log("Adding optimistic meal...");
-      addOptimisticMeal(mealId, imageUri);
-
-      console.log("Uploading to server...");
-      const response = await mealService.uploadMeal(imageUri, mealId, jwt);
-      console.log("Server response:", response);
-
-      console.log("Updating optimistic meal status to analyzing...");
-      updateOptimisticMeal(mealId, { status: "analyzing" });
-
-      console.log("Inserting meal into local DB...");
-      await insertMeal({
-        meal_id: mealId,
-        image_uri: imageUri,
-        status: "analyzing",
-      });
-
-      console.log("Upload process completed successfully");
-      return true;
+      const results = await Promise.all(uploadPromises);
+      return results.every(Boolean);
     } catch (error) {
-      console.error("Error uploading meal:", {
-        error,
-        message: error.message,
-        stack: error.stack,
-        response: error.response?.text ? await error.response.text() : null,
-      });
-
-      updateOptimisticMeal(mealId, {
-        status: "error",
-        error_message: error.message || "Failed to upload image",
-      });
+      console.error("Error in batch upload:", error);
       return false;
     }
   };
@@ -68,17 +79,17 @@ export const useAddMeal = () => {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false,
-        exif: false,
+        allowsMultipleSelection: true,
         quality: 0.075,
       });
 
       if (!result.canceled && result.assets) {
-        return handleImageUpload(result.assets[0].uri);
+        const imageUris = result.assets.map((asset) => asset.uri);
+        return handleImagesUpload(imageUris);
       }
     } catch (error) {
-      console.error("Error picking image:", error);
-      Alert.alert("Error", "Failed to load photo. Please try again.");
+      console.error("Error picking images:", error);
+      Alert.alert("Error", "Failed to load photos. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -105,7 +116,7 @@ export const useAddMeal = () => {
       });
 
       if (!result.canceled && result.assets) {
-        return handleImageUpload(result.assets[0].uri);
+        return handleImagesUpload([result.assets[0].uri]);
       }
     } catch (error) {
       console.error("Error taking photo:", error);
@@ -119,6 +130,6 @@ export const useAddMeal = () => {
     pickFromLibrary,
     takePhoto,
     loading,
-    handleImageUpload,
+    handleImagesUpload,
   };
 };

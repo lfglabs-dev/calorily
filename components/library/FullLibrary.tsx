@@ -7,7 +7,7 @@ import {
   Text,
 } from "react-native";
 import MealItem from "./MealItem";
-import { StoredMeal, MealTemplate } from "../../types";
+import { MealTemplate } from "../../types";
 import { useMealLibrary } from "../../hooks/useMealLibrary";
 
 const FullLibrary = ({
