@@ -334,9 +334,29 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
 
     console.log("Fetching meals since:", new Date(timestampWeek * 1000));
     const mealsSinceWeek = await fetchMealsSinceTimestamp(timestampWeek);
-    console.log("Fetched meals:", mealsSinceWeek);
 
-    setWeeklyMeals(mealsSinceWeek);
+    // Preserve optimistic meals when refreshing
+    setWeeklyMeals((prev) => {
+      const optimisticMeals = prev.filter((meal) => "isOptimistic" in meal);
+      const nonOptimisticNewMeals = mealsSinceWeek.filter(
+        (newMeal) =>
+          !optimisticMeals.some((opt) => opt.meal_id === newMeal.meal_id)
+      );
+      return [...optimisticMeals, ...nonOptimisticNewMeals].sort(
+        (a, b) => b.created_at - a.created_at
+      );
+    });
+
+    setDailyMeals((prev) => {
+      const optimisticMeals = prev.filter((meal) => "isOptimistic" in meal);
+      const nonOptimisticNewMeals = mealsSinceWeek.filter(
+        (newMeal) =>
+          !optimisticMeals.some((opt) => opt.meal_id === newMeal.meal_id)
+      );
+      return [...optimisticMeals, ...nonOptimisticNewMeals].sort(
+        (a, b) => b.created_at - a.created_at
+      );
+    });
   };
 
   const insertMeal = async (
@@ -442,7 +462,12 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
       );
 
       if (!response.ok) {
-        console.error(`Sync failed with status: ${response.status}`);
+        console.log(`Sync failed with status: ${response.status}`);
+        console.log("Response headers:", response.headers);
+        const errorText = await response.text();
+        console.log("Response body:", errorText);
+        console.log("Last sync timestamp:", lastSync);
+        console.log("JWT present:", Boolean(jwt));
         return;
       }
 
@@ -541,22 +566,37 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     };
 
     setDailyMeals((prev) => {
-      if (prev.some((meal) => meal.meal_id === meal_id)) return prev;
-      return [optimisticMeal, ...prev];
+      const filtered = prev.filter((meal) => meal.meal_id !== meal_id);
+      return [optimisticMeal, ...filtered];
     });
     setWeeklyMeals((prev) => {
-      if (prev.some((meal) => meal.meal_id === meal_id)) return prev;
-      return [optimisticMeal, ...prev];
+      const filtered = prev.filter((meal) => meal.meal_id !== meal_id);
+      return [optimisticMeal, ...filtered];
     });
   }, []);
 
   const updateOptimisticMeal = useCallback(
     (meal_id: string, updates: Partial<StoredMeal>) => {
       const updateMealList = (prev: StoredMeal[]) =>
-        prev.map((m) => (m.meal_id === meal_id ? { ...m, ...updates } : m));
+        prev.map((m) => {
+          if (m.meal_id === meal_id) {
+            return {
+              ...m,
+              ...updates,
+              created_at: m.created_at, // Preserve original creation time
+            };
+          }
+          return m;
+        });
 
-      setDailyMeals(updateMealList);
-      setWeeklyMeals(updateMealList);
+      setDailyMeals((prev) => {
+        const updated = updateMealList(prev);
+        return [...updated].sort((a, b) => b.created_at - a.created_at);
+      });
+      setWeeklyMeals((prev) => {
+        const updated = updateMealList(prev);
+        return [...updated].sort((a, b) => b.created_at - a.created_at);
+      });
     },
     []
   );

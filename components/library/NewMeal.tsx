@@ -11,9 +11,9 @@ import {
   Keyboard,
 } from "react-native";
 import { useMealsDatabase } from "../../shared/MealsStorageContext";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { calculateCalories } from "../../utils/food";
 import { v4 as uuidv4 } from "uuid";
+import { MealAnalysis, MealTemplate } from "../../types";
 
 interface NewMealFormData {
   imageUri?: string;
@@ -29,9 +29,10 @@ interface NewMealFormData {
 
 interface NewMealProps {
   onPress: () => Promise<void>;
+  prefilledMeal?: MealTemplate;
 }
 
-const NewMeal: React.FC<NewMealProps> = ({ onPress }) => {
+const NewMeal: React.FC<NewMealProps> = ({ onPress, prefilledMeal }) => {
   const [formData, setFormData] = useState<NewMealFormData>({});
   const { insertMeal } = useMealsDatabase();
   const scheme = useColorScheme();
