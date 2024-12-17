@@ -63,19 +63,41 @@ export default function Subscription({
 
   const handleSkip = async () => {
     try {
+      console.log("Starting restore purchases...");
       const info = await Purchases.restorePurchases();
+      console.log("Restore purchases response:", {
+        entitlements: info.entitlements,
+        activeEntitlements: info.entitlements.active,
+        allPurchasedProductIds: info.allPurchasedProductIdentifiers,
+        latestPurchaseDate: info.latestExpirationDate,
+      });
+
       if (
         info.entitlements.active !== undefined &&
         Object.keys(info.entitlements.active).length > 0
       ) {
+        console.log("Found active entitlements:", info.entitlements.active);
+        const hasLifetime =
+          info.entitlements.active.premium?.productIdentifier?.includes(
+            "lifetime"
+          );
+        console.log("Has lifetime subscription:", hasLifetime);
+
         if (setIsSubscribed) {
           setIsSubscribed(true);
         } else {
           setHasCompletedOnboarding(true);
         }
+      } else {
+        console.log("No active entitlements found");
       }
     } catch (error) {
-      console.error("Error restoring purchases:", error);
+      console.error("Error restoring purchases:", {
+        error,
+        message: error.message,
+        code: error.code,
+        details: error.details,
+      });
     }
   };
 

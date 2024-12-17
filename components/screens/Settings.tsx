@@ -25,21 +25,43 @@ const SubscriptionInfo = ({ dynamicStyles }) => {
     const getSubscriptionStatus = async () => {
       try {
         const info = await Purchases.getCustomerInfo();
+        console.log("Customer info in Settings:", {
+          entitlements: info.entitlements,
+          activeEntitlements: info.entitlements.active,
+          allPurchasedProductIds: info.allPurchasedProductIdentifiers,
+          latestPurchaseDate: info.latestExpirationDate,
+        });
+
         if (
           info.entitlements.active !== undefined &&
           Object.keys(info.entitlements.active).length > 0
         ) {
-          const plan = info.entitlements.active.pro?.productIdentifier.includes(
+          const activeEntitlement = info.entitlements.active.premium;
+          console.log("Active entitlement details:", {
+            identifier: activeEntitlement?.productIdentifier,
+            willRenew: activeEntitlement?.willRenew,
+            periodType: activeEntitlement?.periodType,
+            originalPurchaseDate: activeEntitlement?.originalPurchaseDate,
+          });
+
+          const plan = activeEntitlement?.productIdentifier?.includes(
             "lifetime"
           )
             ? "Lifetime Access"
             : "Premium";
+          console.log("Determined plan:", plan);
           setSubscriptionStatus(plan);
         } else {
+          console.log("No active entitlements found in Settings");
           setSubscriptionStatus("Free Plan");
         }
       } catch (error) {
-        console.error("Error fetching subscription status:", error);
+        console.error("Error fetching subscription status:", {
+          error,
+          message: error.message,
+          code: error.code,
+          details: error.details,
+        });
         setSubscriptionStatus("Unknown");
       } finally {
         setLoading(false);
