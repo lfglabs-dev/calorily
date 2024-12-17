@@ -96,7 +96,7 @@ const Settings = () => {
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>();
   const [offerings, setOfferings] = useState<PurchasesOfferings>();
 
-  const { estimateBMR } = useHealthData();
+  const { estimateBMR, getCurrentWeight } = useHealthData();
   const scheme = useColorScheme();
   const { resetOnboarding } = useOnboarding();
 
@@ -148,6 +148,39 @@ const Settings = () => {
       });
     }
   }, [shouldSave]);
+
+  const handleResetOnboarding = async () => {
+    try {
+      // Get or estimate BMR
+      let bmr = await estimateBMR();
+      if (!bmr || bmr < 800) {
+        bmr = 1800;
+      }
+
+      // Get current weight or use default
+      let currentWeight = await getCurrentWeight();
+      if (!currentWeight) {
+        currentWeight = 70;
+      }
+
+      // Reset to default maintenance values
+      await updateSettings({
+        metabolicData: {
+          basalMetabolicRate: Math.round(bmr),
+          targetCaloricDeficit: Math.round(bmr * 0.05),
+          targetCaloricSurplus: Math.round(bmr * 0.05),
+          targetMinimumWeight: Math.round(currentWeight - 3),
+          targetMaximumWeight: Math.round(currentWeight + 3),
+        },
+      });
+
+      // Reset onboarding state
+      resetOnboarding();
+    } catch (error) {
+      console.error("Error resetting settings:", error);
+      resetOnboarding(); // Still reset onboarding even if settings fail
+    }
+  };
 
   const dynamicStyles = StyleSheet.create({
     safeArea: {
@@ -352,7 +385,7 @@ const Settings = () => {
         </View>
         <TouchableOpacity
           style={[dynamicStyles.settingItem, dynamicStyles.lastSettingRow]}
-          onPress={() => resetOnboarding()}
+          onPress={handleResetOnboarding}
         >
           <Text style={dynamicStyles.settingText}>
             Reset Onboarding (Debug)

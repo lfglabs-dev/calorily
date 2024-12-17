@@ -5,9 +5,11 @@ import React, {
   useContext,
   ReactNode,
 } from "react";
+import { Platform } from "react-native";
 import AppleHealthKit, {
   HealthValue,
   HealthKitPermissions,
+  HealthUnit,
 } from "react-native-health";
 
 type HealthDataContextType = {
@@ -25,6 +27,7 @@ type HealthDataContextType = {
   fetchLatestBodyFatPercentage: () => void;
   estimateBMR: () => Promise<number>;
   saveFoodData: (options: Object) => void;
+  getCurrentWeight: () => Promise<number | null>;
 };
 
 const defaultContext: HealthDataContextType = {
@@ -40,6 +43,23 @@ const defaultContext: HealthDataContextType = {
     return 0;
   },
   saveFoodData: () => {},
+  getCurrentWeight: async () => {
+    if (Platform.OS !== "ios") return null;
+
+    return new Promise((resolve) => {
+      AppleHealthKit.getLatestWeight(
+        { unit: AppleHealthKit.Constants.Units.gram },
+        (err: string, results: { value: number }) => {
+          if (err) {
+            console.error("Error getting weight:", err);
+            resolve(null);
+            return;
+          }
+          resolve(results.value / 1000);
+        }
+      );
+    });
+  },
 };
 
 export const HealthDataContext =
@@ -102,7 +122,7 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
 
   const fetchLatestWeight = () => {
     AppleHealthKit.getLatestWeight(
-      { unit: "gram" } as any,
+      { unit: AppleHealthKit.Constants.Units.gram },
       (err: string, result: { value: number; endDate: string }) => {
         if (err) {
           console.error("Error getting latest weight:", err);
@@ -261,6 +281,23 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
         fetchLatestBodyFatPercentage,
         estimateBMR,
         saveFoodData,
+        getCurrentWeight: async () => {
+          if (Platform.OS !== "ios") return null;
+
+          return new Promise((resolve) => {
+            AppleHealthKit.getLatestWeight(
+              { unit: AppleHealthKit.Constants.Units.gram },
+              (err: string, results: { value: number }) => {
+                if (err) {
+                  console.error("Error getting weight:", err);
+                  resolve(null);
+                  return;
+                }
+                resolve(results.value / 1000);
+              }
+            );
+          });
+        },
       }}
     >
       {children}
