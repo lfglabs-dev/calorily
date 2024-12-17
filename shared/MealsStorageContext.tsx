@@ -194,6 +194,7 @@ interface MealsDatabaseContextProps {
   syncMeals: () => Promise<void>;
   addOptimisticMeal: (meal_id: string, imageUri: string) => void;
   updateOptimisticMeal: (meal_id: string, updates: Partial<StoredMeal>) => void;
+  deletedMealIds: Set<string>;
 }
 
 const MealsDatabaseContext = createContext<MealsDatabaseContextProps>({
@@ -207,6 +208,7 @@ const MealsDatabaseContext = createContext<MealsDatabaseContextProps>({
   syncMeals: async () => {},
   addOptimisticMeal: () => {},
   updateOptimisticMeal: () => {},
+  deletedMealIds: new Set(),
 });
 
 type ProviderProps = {
@@ -270,6 +272,7 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   const [weeklyMeals, setWeeklyMeals] = useState<StoredMeal[]>([]);
   const { lastMessage } = useWebSocket();
   const { jwt } = useAuth();
+  const deletedMealIdsRef = useRef<Set<string>>(new Set());
 
   // Add debug logging
   useEffect(() => {
@@ -304,6 +307,12 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
 
   useEffect(() => {
     if (lastMessage && lastMessage.meal_id) {
+      // Skip processing if meal was deleted
+      if (deletedMealIdsRef.current.has(lastMessage.meal_id)) {
+        console.log("Skipping update for deleted meal:", lastMessage.meal_id);
+        return;
+      }
+
       console.log("WebSocket message received:", {
         event: lastMessage.event,
         mealId: lastMessage.meal_id,
@@ -447,6 +456,9 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   };
 
   const deleteMealById = async (mealId: string) => {
+    // Add to deleted meals set using ref
+    deletedMealIdsRef.current.add(mealId);
+
     // Optimistically remove from state
     setDailyMeals((prev) => prev.filter((meal) => meal.meal_id !== mealId));
     setWeeklyMeals((prev) => prev.filter((meal) => meal.meal_id !== mealId));
@@ -455,7 +467,9 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
       await deleteMealFromDB(mealId);
     } catch (error) {
       console.error("Error deleting meal:", error);
-      // If deletion fails, refresh meals to restore state
+      // If deletion fails, remove from deleted set using ref
+      deletedMealIdsRef.current.delete(mealId);
+      // Refresh meals to restore state
       await refreshMeals();
       throw error;
     }
@@ -667,6 +681,7 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
         syncMeals,
         addOptimisticMeal,
         updateOptimisticMeal,
+        deletedMealIds: deletedMealIdsRef.current,
       }}
     >
       {children}

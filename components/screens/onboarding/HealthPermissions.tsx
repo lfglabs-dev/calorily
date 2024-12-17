@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -15,15 +15,6 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 export default function HealthPermissions({ navigation }) {
   const { setHasHealthPermissions } = useOnboarding();
   const scheme = useColorScheme();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }, []);
 
   const requestPermissions = async () => {
     if (Platform.OS !== "ios") {
@@ -70,13 +61,13 @@ export default function HealthPermissions({ navigation }) {
     >
       <View style={styles.contentContainer}>
         <View style={styles.topPadding} />
-        <Animated.View style={[styles.iconContainer, { opacity: fadeAnim }]}>
+        <View style={styles.iconContainer}>
           <FontAwesome
             name="heartbeat"
             size={80}
             color={scheme === "dark" ? "#1A73E8" : "#007AFF"}
           />
-        </Animated.View>
+        </View>
         <View style={styles.textContainer}>
           <Text
             style={[
