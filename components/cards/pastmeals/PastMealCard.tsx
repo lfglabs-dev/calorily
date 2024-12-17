@@ -13,8 +13,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMealsDatabase } from "../../../shared/MealsStorageContext";
 import { getMealMacros } from "../../../utils/food";
 import { StoredMeal } from "../../../types";
-import ReviewMeal from "../../addmeal/ReviewMeal";
-import { useState } from "react";
 import { MacroIcon } from "../../common/MacroIcon";
 
 const PastMealCard = ({
