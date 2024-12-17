@@ -38,6 +38,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           LSSupportsMultipleItems: true,
         },
       ],
+      NSExtensionActivationRule: {
+        NSExtensionActivationSupportsImageWithMaxCount: 10,
+      },
       NSPhotoLibraryUsageDescription:
         "This app accesses your photos to analyze your meals.",
       CFBundleDocumentTypes: [
