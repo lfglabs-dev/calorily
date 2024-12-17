@@ -269,10 +269,7 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   const [dailyMeals, setDailyMeals] = useState<StoredMeal[]>([]);
   const [weeklyMeals, setWeeklyMeals] = useState<StoredMeal[]>([]);
   const { lastMessage } = useWebSocket();
-  const { saveFoodData } = useHealthData();
   const { jwt } = useAuth();
-  const [meals, setMeals] = useState<OptimisticMeal[]>([]);
-  const optimisticMealsRef = useRef<{ [key: string]: OptimisticMeal }>({});
 
   // Add debug logging
   useEffect(() => {
@@ -307,7 +304,19 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
 
   useEffect(() => {
     if (lastMessage && lastMessage.meal_id) {
+      console.log("WebSocket message received:", {
+        event: lastMessage.event,
+        mealId: lastMessage.meal_id,
+        error: lastMessage.error || "none",
+      });
+
       if (lastMessage.event === "analysis_failed") {
+        console.log("Analysis failed for meal:", {
+          mealId: lastMessage.meal_id,
+          error: lastMessage.error,
+          timestamp: new Date().toISOString(),
+        });
+
         db.transaction((tx) => {
           tx.executeSql(
             `UPDATE meals 
@@ -315,10 +324,20 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
              error_message = ?
              WHERE meal_id = ?`,
             [lastMessage.error, lastMessage.meal_id],
-            () => {
+            (_, result) => {
+              console.log("Database update result:", {
+                rowsAffected: result.rowsAffected,
+                mealId: lastMessage.meal_id,
+              });
+
               setWeeklyMeals((prevMeals) => {
-                return prevMeals.map((meal) => {
+                const updatedMeals = prevMeals.map((meal) => {
                   if (meal.meal_id === lastMessage.meal_id) {
+                    console.log("Updating meal in state:", {
+                      mealId: meal.meal_id,
+                      oldStatus: meal.status,
+                      newStatus: "error",
+                    });
                     return {
                       ...meal,
                       status: "error" as MealStatus,
@@ -327,7 +346,16 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
                   }
                   return meal;
                 });
+                return updatedMeals;
               });
+            },
+            (_, error) => {
+              console.error("Failed to update meal status:", {
+                error,
+                mealId: lastMessage.meal_id,
+                sql: "UPDATE meals SET status = error...",
+              });
+              return false;
             }
           );
         });

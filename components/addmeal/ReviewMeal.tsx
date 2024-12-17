@@ -40,39 +40,43 @@ const ReviewMeal = ({ mealData, onUpdate, onClose }: ReviewMealProps) => {
       selected: true,
     })) || [];
 
-  const handleFeedback = async (feedback: string) => {
-    try {
-      const meal_id = mealData.meal_id;
+  const handleFeedback = (feedback: string) => {
+    const previousStatus = mealData.status;
+    const previousErrorMessage = mealData.error_message;
 
-      const response = await fetch("https://api.calorily.com/meals/feedback", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${jwt}`,
-        },
-        body: JSON.stringify({
-          meal_id,
-          feedback,
-        }),
+    setDialogVisible(false);
+    onUpdate({
+      status: "analyzing",
+      error_message: null,
+    });
+
+    fetch("https://api.calorily.com/meals/feedback", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({
+        meal_id: mealData.meal_id,
+        feedback,
+      }),
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        const data = await response.text();
+        if (data) {
+          console.log("Feedback submitted successfully:", data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error submitting feedback:", error);
+        onUpdate({
+          status: previousStatus,
+          error_message: previousErrorMessage,
+        });
       });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.text();
-      if (data) {
-        console.log("Feedback submitted successfully:", data);
-      }
-
-      setDialogVisible(false);
-      onUpdate({
-        status: "analyzing",
-        error_message: null,
-      });
-    } catch (error) {
-      console.error("Error submitting feedback:", error);
-    }
   };
 
   const handleUpdate = async (updates: Partial<StoredMeal>) => {
