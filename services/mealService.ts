@@ -1,5 +1,6 @@
 import * as FileSystem from "expo-file-system";
 import * as SQLite from "expo-sqlite";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { StoredMeal } from "../types";
 import { eventBus } from "./eventBus";
 
@@ -17,9 +18,46 @@ export const mealService = {
     jwt: string
   ): Promise<UploadMealResponse> {
     try {
-      const base64 = await FileSystem.readAsStringAsync(imageUri, {
+      // Log original file info
+      const fileInfo = await FileSystem.getInfoAsync(imageUri, { size: true });
+      if (!fileInfo.exists) {
+        throw new Error("File does not exist");
+      }
+      console.log(
+        "Original image size:",
+        (fileInfo.size / 1024 / 1024).toFixed(2),
+        "MB"
+      );
+
+      // Compress the image
+      const compressedImage = await manipulateAsync(
+        imageUri,
+        [{ resize: { width: 1024 } }], // Resize to max width of 1024px
+        {
+          compress: 0.25, // 25% quality
+          format: SaveFormat.JPEG,
+        }
+      );
+
+      // Log compressed file info
+      const compressedFileInfo = await FileSystem.getInfoAsync(
+        compressedImage.uri,
+        { size: true }
+      );
+      if (!compressedFileInfo.exists) {
+        throw new Error("Compressed file does not exist");
+      }
+      console.log(
+        "Compressed image size:",
+        (compressedFileInfo.size / 1024 / 1024).toFixed(2),
+        "MB"
+      );
+
+      const base64 = await FileSystem.readAsStringAsync(compressedImage.uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
+
+      console.log("Base64 string length:", base64.length);
 
       // Just send the raw base64 string without data URI prefix
       const response = await fetch("https://api.calorily.com/meals", {
