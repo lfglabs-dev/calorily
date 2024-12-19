@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   useColorScheme,
   TextInput,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
@@ -22,102 +24,114 @@ export default function PromoCode({ navigation }) {
   };
 
   return (
-    <View
-      style={[
-        styles.container,
-        { backgroundColor: scheme === "dark" ? "#000" : "#F2F1F6" },
-      ]}
-    >
-      <FontAwesome
-        name="ticket"
-        size={60}
-        color={scheme === "dark" ? "#1A73E8" : "#007AFF"}
-        style={styles.icon}
-      />
-      <Text
-        style={[styles.title, { color: scheme === "dark" ? "#FFF" : "#000" }]}
-      >
-        Got a Promo Code?
-      </Text>
-      <Text
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View
         style={[
-          styles.description,
-          { color: scheme === "dark" ? "#AAA" : "#666" },
+          styles.container,
+          { backgroundColor: scheme === "dark" ? "#000" : "#F2F1F6" },
         ]}
       >
-        If you have a promotional code, enter it below to unlock premium
-        features.
-      </Text>
+        <View style={styles.contentContainer}>
+          <View style={styles.topPadding} />
+          <View style={styles.iconContainer}>
+            <FontAwesome
+              name="ticket"
+              size={80}
+              color={scheme === "dark" ? "#1A73E8" : "#007AFF"}
+            />
+          </View>
+          <View style={styles.textContainer}>
+            <Text
+              style={[
+                styles.title,
+                { color: scheme === "dark" ? "#FFF" : "#000" },
+              ]}
+            >
+              Got a Promo Code?
+            </Text>
+            <Text
+              style={[
+                styles.description,
+                { color: scheme === "dark" ? "#AAA" : "#666" },
+              ]}
+            >
+              If you have a promotional code, enter it below to unlock premium
+              features.
+            </Text>
+          </View>
 
-      <TextInput
-        style={[
-          styles.input,
-          {
-            backgroundColor: scheme === "dark" ? "#222" : "#EEE",
-            color: scheme === "dark" ? "#FFF" : "#000",
-          },
-        ]}
-        placeholder="Enter promo code"
-        placeholderTextColor={scheme === "dark" ? "#666" : "#999"}
-        value={code}
-        onChangeText={setCode}
-        autoCapitalize="characters"
-      />
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[
-            styles.skipButton,
-            {
-              backgroundColor: scheme === "dark" ? "#222" : "#EEE",
-            },
-          ]}
-          onPress={() => navigation.navigate("Subscription")}
-        >
-          <Text
+          <TextInput
             style={[
-              styles.skipButtonText,
-              { color: scheme === "dark" ? "#FFF" : "#000" },
-            ]}
-          >
-            Skip
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.continueButton,
-            {
-              backgroundColor:
-                code.trim().length > 0
-                  ? scheme === "dark"
-                    ? "#1A73E8"
-                    : "#007AFF"
-                  : scheme === "dark"
-                  ? "#222"
-                  : "#EEE",
-            },
-          ]}
-          onPress={handleContinue}
-        >
-          <Text
-            style={[
-              styles.continueButtonText,
+              styles.input,
               {
-                color:
-                  code.trim().length > 0
-                    ? "#FFF"
-                    : scheme === "dark"
-                    ? "#666"
-                    : "#999",
+                backgroundColor: scheme === "dark" ? "#222" : "#EEE",
+                color: scheme === "dark" ? "#FFF" : "#000",
               },
             ]}
+            placeholder="Enter promo code"
+            placeholderTextColor={scheme === "dark" ? "#666" : "#999"}
+            value={code}
+            onChangeText={setCode}
+            autoCapitalize="characters"
+          />
+          <View style={styles.bottomPadding} />
+        </View>
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[
+              styles.skipButton,
+              {
+                backgroundColor: scheme === "dark" ? "#222" : "#EEE",
+              },
+            ]}
+            onPress={() => navigation.navigate("Subscription")}
           >
-            Continue
-          </Text>
-        </TouchableOpacity>
+            <Text
+              style={[
+                styles.skipButtonText,
+                { color: scheme === "dark" ? "#FFF" : "#000" },
+              ]}
+            >
+              Skip
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.continueButton,
+              {
+                backgroundColor:
+                  code.trim().length > 0
+                    ? scheme === "dark"
+                      ? "#1A73E8"
+                      : "#007AFF"
+                    : scheme === "dark"
+                    ? "#222"
+                    : "#EEE",
+              },
+            ]}
+            onPress={handleContinue}
+          >
+            <Text
+              style={[
+                styles.continueButtonText,
+                {
+                  color:
+                    code.trim().length > 0
+                      ? "#FFF"
+                      : scheme === "dark"
+                      ? "#666"
+                      : "#999",
+                },
+              ]}
+            >
+              Continue
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -125,11 +139,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    paddingTop: 60,
+  },
+  contentContainer: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
   },
-  icon: {
-    marginBottom: 30,
+  topPadding: {
+    flex: 0.1,
+  },
+  bottomPadding: {
+    flex: 0.4,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    marginBottom: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  textContainer: {
+    paddingHorizontal: 10,
   },
   title: {
     fontSize: 24,
@@ -148,7 +178,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     fontSize: 16,
-    marginBottom: 20,
+    marginTop: 20,
   },
   buttonContainer: {
     flexDirection: "row",
