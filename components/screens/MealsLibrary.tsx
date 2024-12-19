@@ -72,9 +72,7 @@ const MealsLibrary = () => {
       {selectedIndex === 1 ? (
         <FavoriteLibrary handlePrefillMeal={handlePrefillMeal} />
       ) : null}
-      {selectedIndex === 2 ? (
-        <NewMeal prefilledMeal={prefilledMeal} onPress={handlePhotoSelect} />
-      ) : null}
+      {selectedIndex === 2 ? <NewMeal prefilledMeal={prefilledMeal} /> : null}
     </SafeAreaView>
   );
 };

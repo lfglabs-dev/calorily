@@ -14,6 +14,10 @@ import { useMealsDatabase } from "../../shared/MealsStorageContext";
 import { calculateCalories } from "../../utils/food";
 import { v4 as uuidv4 } from "uuid";
 import { MealAnalysis, MealTemplate } from "../../types";
+import { useSingleImagePicker } from "../../hooks/useSingleImagePicker";
+import { useNavigation } from "@react-navigation/native";
+import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
+import { MainTabParamList } from "../../navigation/types";
 
 interface NewMealFormData {
   imageUri?: string;
@@ -28,14 +32,15 @@ interface NewMealFormData {
 }
 
 interface NewMealProps {
-  onPress: () => Promise<void>;
   prefilledMeal?: MealTemplate;
 }
 
-const NewMeal: React.FC<NewMealProps> = ({ onPress, prefilledMeal }) => {
+const NewMeal: React.FC<NewMealProps> = ({ prefilledMeal }) => {
   const [formData, setFormData] = useState<NewMealFormData>({});
   const { insertMeal } = useMealsDatabase();
   const scheme = useColorScheme();
+  const { pickImage } = useSingleImagePicker();
+  const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
 
   useEffect(() => {
     if (prefilledMeal) {
@@ -111,16 +116,25 @@ const NewMeal: React.FC<NewMealProps> = ({ onPress, prefilledMeal }) => {
       };
 
       await insertMeal({
+        meal_id: analysis.meal_id,
         image_uri: formData.imageUri,
         status: "complete",
         last_analysis: analysis,
+        created_at: Date.now(),
       });
 
       setFormData({});
-      Alert.alert("Success", "Meal added successfully");
+      navigation.navigate("Summary");
     } catch (error) {
       console.error("Error adding meal:", error);
       Alert.alert("Error", "Failed to add meal");
+    }
+  };
+
+  const handleImageSelection = async () => {
+    const imageUri = await pickImage();
+    if (imageUri) {
+      setFormData((prev) => ({ ...prev, imageUri }));
     }
   };
 
@@ -286,7 +300,10 @@ const NewMeal: React.FC<NewMealProps> = ({ onPress, prefilledMeal }) => {
         </View>
 
         <View style={styles.imageButtonContainer}>
-          <TouchableOpacity style={styles.selectPhotoButton} onPress={onPress}>
+          <TouchableOpacity
+            style={styles.selectPhotoButton}
+            onPress={handleImageSelection}
+          >
             <Text style={styles.buttonText}>
               {formData.imageUri ? "Change Photo" : "Select Photo"}
             </Text>
