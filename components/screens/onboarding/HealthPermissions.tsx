@@ -11,9 +11,11 @@ import {
 import { useOnboarding } from "../../../shared/OnboardingContext";
 import AppleHealthKit, { HealthKitPermissions } from "react-native-health";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { useHealthData } from "../../../shared/HealthDataContext";
 
 export default function HealthPermissions({ navigation }) {
   const { setHasHealthPermissions } = useOnboarding();
+  const { initializeHealthKit } = useHealthData();
   const scheme = useColorScheme();
 
   const requestPermissions = async () => {
@@ -43,13 +45,13 @@ export default function HealthPermissions({ navigation }) {
       },
     } as HealthKitPermissions;
 
-    AppleHealthKit.initHealthKit(permissions, (error: string) => {
-      if (error) {
-        console.error("[ERROR] Cannot grant permissions:", error);
-      }
+    try {
+      await initializeHealthKit(permissions);
       setHasHealthPermissions(true);
       navigation.navigate("Login");
-    });
+    } catch (error) {
+      console.error("Error initializing HealthKit:", error);
+    }
   };
 
   return (

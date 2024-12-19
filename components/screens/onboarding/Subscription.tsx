@@ -72,14 +72,23 @@ export default function Subscription({
         productId: info.entitlements.active.premium?.productIdentifier,
       });
 
+      if (info.entitlements.active.premium) {
+        if (setIsSubscribed) {
+          await setIsSubscribed(true);
+        } else {
+          await setHasCompletedOnboarding(true);
+        }
+        return;
+      }
+
       if (
         info.entitlements.active !== undefined &&
         Object.keys(info.entitlements.active).length > 0
       ) {
         if (setIsSubscribed) {
-          setIsSubscribed(true);
+          await setIsSubscribed(true);
         } else {
-          setHasCompletedOnboarding(true);
+          await setHasCompletedOnboarding(true);
         }
       }
     } catch (error) {

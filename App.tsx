@@ -34,11 +34,15 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export default function App() {
   return (
-    <AuthProvider>
-      <OnboardingProvider>
-        <AppContent />
-      </OnboardingProvider>
-    </AuthProvider>
+    <HealthDataProvider>
+      <ApplicationSettingsProvider>
+        <OnboardingProvider>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </OnboardingProvider>
+      </ApplicationSettingsProvider>
+    </HealthDataProvider>
   );
 }
 

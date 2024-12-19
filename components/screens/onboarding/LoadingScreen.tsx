@@ -6,6 +6,7 @@ import {
   useColorScheme,
   Animated,
   Easing,
+  Platform,
 } from "react-native";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useHealthData } from "../../../shared/HealthDataContext";
@@ -58,16 +59,29 @@ export default function LoadingScreen({ navigation }) {
 
   const initializeSettings = async () => {
     try {
-      // Get or estimate BMR
-      let bmr = await estimateBMR();
-      if (!bmr || bmr < 800) {
-        bmr = 1800; // Default if no data available
+      console.log("Starting settings initialization...");
+
+      // Get current weight first
+      let currentWeight = await getCurrentWeight();
+      console.log("Current weight:", currentWeight);
+
+      if (!currentWeight) {
+        console.log("Using default weight as current weight was null");
+        currentWeight = 70; // Default weight in kg
       }
 
-      // Get current weight or use default
-      let currentWeight = await getCurrentWeight();
-      if (!currentWeight) {
-        currentWeight = 70; // Default weight in kg
+      // Now get or estimate BMR with weight data available
+      let bmr = await estimateBMR();
+      console.log("Estimated BMR:", bmr);
+
+      if (!bmr || bmr < 800) {
+        console.log(
+          "Using default BMR as estimated was:",
+          bmr,
+          "Reason:",
+          !bmr ? "null BMR" : "BMR too low"
+        );
+        bmr = 1800; // Default if no data available
       }
 
       // Set targets based on goals
