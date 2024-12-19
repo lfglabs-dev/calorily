@@ -1,11 +1,13 @@
+import { PurchasesPackage } from "react-native-purchases";
+
 export type RootStackParamList = {
-  MainTabs: undefined;
   GoalSelection: undefined;
   HealthPermissions: undefined;
   Login: undefined;
   Loading: undefined;
   PromoCode: undefined;
   Subscription: undefined;
+  MainTabs: undefined;
 };
 
 export type MainTabParamList = {

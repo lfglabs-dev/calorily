@@ -28,6 +28,11 @@ import HealthPermissions from "./components/screens/onboarding/HealthPermissions
 import LoadingScreen from "./components/screens/onboarding/LoadingScreen";
 import PromoCode from "./components/screens/onboarding/PromoCode";
 import { RootStackParamList, MainTabParamList } from "./navigation/types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  SubscriptionProvider,
+  useSubscription,
+} from "./shared/SubscriptionContext";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -46,15 +51,60 @@ export default function App() {
   );
 }
 
+const SubscriptionScreen = () => {
+  const { handleSubscribe, setIsSubscribed } = useSubscription();
+  return (
+    <Subscription
+      onSubscribe={handleSubscribe}
+      setIsSubscribed={setIsSubscribed}
+    />
+  );
+};
+
 function AppContent() {
   const scheme = useColorScheme();
   const theme = scheme === "dark" ? DarkTheme : DefaultTheme;
-  const [isSubscribed, setIsSubscribed] = useState<boolean | undefined>(
-    undefined
-  );
-  const [isLoginComplete, setIsLoginComplete] = useState(false);
-  const { isAuthenticated, isLoading } = useAuth();
+  const [isSubscribed, setIsSubscribed] = useState<boolean | undefined>(true);
+  const { isAuthenticated } = useAuth();
   const { hasCompletedOnboarding } = useOnboarding();
+
+  // Configure Purchases
+  useEffect(() => {
+    const checkSubscription = async () => {
+      try {
+        // First try to get cached status
+        const cachedStatus = await AsyncStorage.getItem("subscription_status");
+        console.log("cachedStatus:", cachedStatus);
+        if (cachedStatus) {
+          setIsSubscribed(cachedStatus === "true");
+        }
+
+        // Then check with server
+        const info = await Purchases.getCustomerInfo();
+        const offerings = await Purchases.getOfferings();
+        const newStatus =
+          !Boolean(offerings?.current?.availablePackages) ||
+          (info.entitlements.active !== undefined &&
+            Object.keys(info.entitlements.active).length > 0);
+
+        setIsSubscribed(newStatus);
+        await AsyncStorage.setItem("subscription_status", newStatus.toString());
+      } catch (error) {
+        console.error("Error fetching offerings:", error);
+        setIsSubscribed(true); // Default to true in case of error
+      }
+    };
+
+    Purchases.setLogLevel(Purchases.LOG_LEVEL.VERBOSE);
+    const apiKey = Platform.select({
+      ios: "appl_COIKdnlfZBhFYGEJZtloMNajqdr",
+      android: "todo_google_api_key",
+    });
+    if (apiKey) {
+      Purchases.configure({ apiKey });
+      checkSubscription();
+    }
+  }, []);
 
   // Configure Purchases
   useEffect(() => {
@@ -69,6 +119,7 @@ function AppContent() {
         try {
           const info = await Purchases.getCustomerInfo();
           const offerings = await Purchases.getOfferings();
+          console.log("Checking subscription status...");
           setIsSubscribed(
             !Boolean(offerings?.current?.availablePackages) ||
               (info.entitlements.active !== undefined &&
@@ -97,21 +148,36 @@ function AppContent() {
   };
 
   // Show onboarding flow if not completed OR not authenticated
-  if (!hasCompletedOnboarding || !isAuthenticated) {
+  console.log(hasCompletedOnboarding, isAuthenticated, isSubscribed);
+  if (
+    !hasCompletedOnboarding ||
+    !isAuthenticated ||
+    isSubscribed === undefined
+  ) {
+    console.log("Showing onboarding flow due to:", {
+      hasCompletedOnboarding,
+      isAuthenticated,
+      isSubscribed,
+    });
     return (
-      <NavigationContainer theme={theme}>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="GoalSelection" component={GoalSelection} />
-          <Stack.Screen
-            name="HealthPermissions"
-            component={HealthPermissions}
-          />
-          <Stack.Screen name="Login" component={Login} />
-          <Stack.Screen name="Loading" component={LoadingScreen} />
-          <Stack.Screen name="PromoCode" component={PromoCode} />
-          <Stack.Screen name="Subscription" component={Subscription} />
-        </Stack.Navigator>
-      </NavigationContainer>
+      <SubscriptionProvider
+        handleSubscribe={handleSubscribe}
+        setIsSubscribed={setIsSubscribed}
+      >
+        <NavigationContainer theme={theme}>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="GoalSelection" component={GoalSelection} />
+            <Stack.Screen
+              name="HealthPermissions"
+              component={HealthPermissions}
+            />
+            <Stack.Screen name="Login" component={Login} />
+            <Stack.Screen name="Loading" component={LoadingScreen} />
+            <Stack.Screen name="PromoCode" component={PromoCode} />
+            <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SubscriptionProvider>
     );
   }
 

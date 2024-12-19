@@ -11,14 +11,17 @@ import {
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Purchases, { PurchasesPackage } from "react-native-purchases";
 import { useOnboarding } from "../../../shared/OnboardingContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+type SubscriptionProps = {
+  onSubscribe: (pkg: PurchasesPackage) => Promise<void>;
+  setIsSubscribed: (value: boolean) => void;
+};
 
 export default function Subscription({
   onSubscribe: externalOnSubscribe,
   setIsSubscribed,
-}: {
-  onSubscribe?: (pkg: PurchasesPackage) => Promise<void>;
-  setIsSubscribed?: (value: boolean) => void;
-}) {
+}: SubscriptionProps) {
   const [offerings, setOfferings] = useState<PurchasesPackage[] | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const scheme = useColorScheme();
@@ -63,36 +66,36 @@ export default function Subscription({
 
   const handleSkip = async () => {
     try {
+      console.log("Starting restore purchases...");
       const info = await Purchases.restorePurchases();
-      console.log("Restore purchases result:", {
-        hasLifetime:
-          info.entitlements.active.premium?.productIdentifier?.includes(
-            "lifetime"
-          ),
-        productId: info.entitlements.active.premium?.productIdentifier,
-      });
 
-      if (info.entitlements.active.premium) {
-        if (setIsSubscribed) {
-          await setIsSubscribed(true);
-        } else {
-          await setHasCompletedOnboarding(true);
-        }
-        return;
-      }
+      const premium = info.entitlements.active.premium;
+      console.log("Premium entitlement:", premium);
 
-      if (
-        info.entitlements.active !== undefined &&
-        Object.keys(info.entitlements.active).length > 0
-      ) {
-        if (setIsSubscribed) {
+      if (premium) {
+        console.log(
+          "Found active premium entitlement, completing onboarding..."
+        );
+        try {
+          await AsyncStorage.setItem("subscription_status", "true");
+
+          // Always set both states
+
+          console.log("Setting isSubscribed to true...", setIsSubscribed);
           await setIsSubscribed(true);
-        } else {
+
+          console.log("Setting hasCompletedOnboarding to true...");
           await setHasCompletedOnboarding(true);
+
+          console.log("Onboarding completion successful");
+        } catch (err) {
+          console.error("Error completing onboarding:", err);
         }
+      } else {
+        console.log("No premium entitlement found");
       }
     } catch (error) {
-      console.error("Error restoring purchases:", error);
+      console.error("Error in handleSkip:", error);
     }
   };
 
