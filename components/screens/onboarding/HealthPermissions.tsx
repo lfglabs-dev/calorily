@@ -45,12 +45,15 @@ export default function HealthPermissions({ navigation }) {
       },
     } as HealthKitPermissions;
 
+    console.log("[DEBUG] Requesting HealthKit permissions:", permissions);
+
     try {
       await initializeHealthKit(permissions);
+      console.log("[DEBUG] HealthKit permissions granted successfully");
       setHasHealthPermissions(true);
       navigation.navigate("Login");
     } catch (error) {
-      console.error("Error initializing HealthKit:", error);
+      console.error("[DEBUG] Error initializing HealthKit:", error);
     }
   };
 

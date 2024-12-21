@@ -20,6 +20,13 @@ const CaloriesGoalCard = () => {
   const { dailyActiveEnergyBurned } = useHealthData();
 
   useEffect(() => {
+    console.log(
+      "[DEBUG] CaloriesGoal - Active Energy Burned:",
+      dailyActiveEnergyBurned
+    );
+  }, [dailyActiveEnergyBurned]);
+
+  useEffect(() => {
     setDailyMacros(getDailyMacros(dailyMeals));
   }, [dailyMeals]);
 

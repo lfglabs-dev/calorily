@@ -5,7 +5,7 @@ import React, {
   useContext,
   ReactNode,
 } from "react";
-import { Platform } from "react-native";
+import { Platform, AppState } from "react-native";
 import AppleHealthKit, {
   HealthValue,
   HealthKitPermissions,
@@ -95,6 +95,28 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
   const [lastWeight, setLastWeight] = useState<number | null>(null);
   const [lastBodyFat, setLastBodyFat] = useState<number | null>(null);
 
+  // Refresh active energy when initialized
+  useEffect(() => {
+    if (isInitialized) {
+      console.log("[DEBUG] Initial refresh of active energy");
+      refreshActiveEnergyBurned();
+    }
+  }, [isInitialized]);
+
+  // Refresh active energy when app comes to foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
+        console.log("[DEBUG] App active, refreshing active energy");
+        refreshActiveEnergyBurned();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   const initializeHealthKit = async (permissions: HealthKitPermissions) => {
     return new Promise<void>((resolve, reject) => {
       AppleHealthKit.initHealthKit(permissions, (error: string) => {
@@ -153,6 +175,8 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
       includeManuallyAdded: true,
     };
 
+    console.log("[DEBUG] Fetching active energy with options:", options);
+
     AppleHealthKit.getActiveEnergyBurned(
       options,
       (
@@ -160,11 +184,19 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
         results: { value: number; startDate: string; endDate: string }[]
       ) => {
         if (error) {
-          console.error("Error fetching active energy burned data:", error);
+          console.error(
+            "[DEBUG] Error fetching active energy burned data:",
+            error
+          );
         } else {
+          console.log("[DEBUG] Raw active energy results:", results);
           const dailyEnergyBurned = results.reduce(
             (sum, item) => sum + item.value,
             0
+          );
+          console.log(
+            "[DEBUG] Calculated daily energy burned:",
+            dailyEnergyBurned
           );
           setDailyActiveEnergyBurned(dailyEnergyBurned);
         }
