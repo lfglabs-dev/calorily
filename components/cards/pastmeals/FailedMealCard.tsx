@@ -13,9 +13,10 @@ import { OptimisticMeal } from "../../../types";
 
 interface FailedMealCardProps {
   meal: OptimisticMeal;
+  onFeedback: (meal: OptimisticMeal) => void;
 }
 
-const FailedMealCard = ({ meal }: FailedMealCardProps) => {
+const FailedMealCard = ({ meal, onFeedback }: FailedMealCardProps) => {
   const scheme = useColorScheme();
   const { deleteMealById } = useMealsDatabase();
 
@@ -58,12 +59,17 @@ const FailedMealCard = ({ meal }: FailedMealCardProps) => {
     },
   });
 
-  const handleDelete = () => {
+  const handleDelete = (event) => {
+    event.stopPropagation();
     deleteMealById(meal.meal_id);
   };
 
+  const handlePress = () => {
+    onFeedback(meal);
+  };
+
   return (
-    <View style={styles.container}>
+    <TouchableOpacity onPress={handlePress} style={styles.container}>
       <ImageBackground
         source={{ uri: meal.image_uri }}
         style={styles.imageBackground}
@@ -84,7 +90,7 @@ const FailedMealCard = ({ meal }: FailedMealCardProps) => {
           <Text style={styles.messageText}>{meal.error_message}</Text>
         </View>
       </ImageBackground>
-    </View>
+    </TouchableOpacity>
   );
 };
 

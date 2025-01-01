@@ -12,7 +12,6 @@ import * as FileSystem from "expo-file-system";
 import { useWebSocket } from "./WebSocketContext";
 
 import { StoredMeal, MealStatus, MealAnalysis, OptimisticMeal } from "../types";
-import { useHealthData } from "./HealthDataContext";
 import { useAuth } from "./AuthContext";
 import { getLastSyncTimestamp, setLastSyncTimestamp } from "../utils/storage";
 import { AppState } from "react-native";
@@ -27,11 +26,28 @@ const DB_VERSION = 4; // Increment for new schema with error_message
 const setupDatabaseAsync = async (): Promise<void> => {
   return new Promise((resolve, reject) => {
     db.transaction((tx) => {
-      tx.executeSql("DROP TABLE IF EXISTS version;", [], () => {
-        tx.executeSql(
-          "CREATE TABLE IF NOT EXISTS version (id INTEGER PRIMARY KEY CHECK (id = 1), version INTEGER)",
-          [],
-          () => {
+      // First check if version table exists
+      tx.executeSql(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='version';",
+        [],
+        (_, result) => {
+          const versionTableExists = result.rows.length > 0;
+
+          if (!versionTableExists) {
+            // If version table doesn't exist, this is a fresh install
+            // Create version table and set initial version
+            tx.executeSql(
+              "CREATE TABLE IF NOT EXISTS version (id INTEGER PRIMARY KEY CHECK (id = 1), version INTEGER);",
+              [],
+              () => {
+                tx.executeSql(
+                  "INSERT INTO version (id, version) VALUES (1, ?);",
+                  [DB_VERSION]
+                );
+              }
+            );
+
+            // Create meals table with all required columns
             tx.executeSql(
               `CREATE TABLE IF NOT EXISTS meals (
                 meal_id TEXT PRIMARY KEY,
@@ -45,11 +61,66 @@ const setupDatabaseAsync = async (): Promise<void> => {
               [],
               () => {
                 resolve();
+              },
+              (_, error) => {
+                console.error("Error creating meals table:", error);
+                reject(error);
+                return false;
+              }
+            );
+          } else {
+            // Version table exists, check version number
+            tx.executeSql(
+              "SELECT version FROM version WHERE id = 1;",
+              [],
+              (_, versionResult) => {
+                const currentVersion = versionResult.rows.item(0)?.version || 0;
+
+                if (currentVersion < DB_VERSION) {
+                  // Handle migration if needed
+                  console.log(
+                    `Migrating database from version ${currentVersion} to ${DB_VERSION}`
+                  );
+
+                  // Drop and recreate tables to ensure correct schema
+                  tx.executeSql("DROP TABLE IF EXISTS meals;", [], () => {
+                    tx.executeSql(
+                      `CREATE TABLE meals (
+                        meal_id TEXT PRIMARY KEY,
+                        image_uri TEXT NOT NULL,
+                        favorite INTEGER DEFAULT 0,
+                        status TEXT DEFAULT 'analyzing',
+                        created_at INTEGER NOT NULL,
+                        last_analysis TEXT,
+                        error_message TEXT
+                      );`,
+                      [],
+                      () => {
+                        // Update version number
+                        tx.executeSql(
+                          "UPDATE version SET version = ? WHERE id = 1;",
+                          [DB_VERSION],
+                          () => {
+                            resolve();
+                          }
+                        );
+                      }
+                    );
+                  });
+                } else {
+                  // Database is up to date
+                  resolve();
+                }
               }
             );
           }
-        );
-      });
+        },
+        (_, error) => {
+          console.error("Error checking version table:", error);
+          reject(error);
+          return false;
+        }
+      );
     });
   });
 };

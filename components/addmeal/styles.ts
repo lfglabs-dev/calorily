@@ -178,4 +178,19 @@ export const styles = (colorScheme: StylesProps["colorScheme"]) =>
       fontSize: 16,
       fontWeight: "500",
     },
+    errorContainer: {
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 20,
+      marginBottom: 20,
+    },
+    errorIcon: {
+      marginBottom: 15,
+    },
+    errorMessage: {
+      color: colorScheme === "dark" ? "#FFF" : "#000",
+      fontSize: 16,
+      textAlign: "center",
+      lineHeight: 22,
+    },
   });
