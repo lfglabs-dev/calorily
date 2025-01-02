@@ -42,7 +42,7 @@
     "@babel/core": "^7.19.3"
   },
   "name": "calorily",
-  "version": "1.9.2",
+  "version": "1.9.3",
   "private": true,
   "scripts": {
     "ts:check": "tsc",

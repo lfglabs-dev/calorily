@@ -39,31 +39,42 @@ const setupDatabaseAsync = async (): Promise<void> => {
             tx.executeSql(
               "CREATE TABLE IF NOT EXISTS version (id INTEGER PRIMARY KEY CHECK (id = 1), version INTEGER);",
               [],
-              () => {
+              (_, createResult) => {
                 tx.executeSql(
                   "INSERT INTO version (id, version) VALUES (1, ?);",
-                  [DB_VERSION]
+                  [DB_VERSION],
+                  (_, insertResult) => {
+                    // Create meals table with all required columns
+                    tx.executeSql(
+                      `CREATE TABLE IF NOT EXISTS meals (
+                        meal_id TEXT PRIMARY KEY,
+                        image_uri TEXT NOT NULL,
+                        favorite INTEGER DEFAULT 0,
+                        status TEXT DEFAULT 'analyzing',
+                        created_at INTEGER NOT NULL,
+                        last_analysis TEXT,
+                        error_message TEXT
+                      );`,
+                      [],
+                      () => {
+                        resolve();
+                      },
+                      (_, error) => {
+                        console.error("Error creating meals table:", error);
+                        reject(error);
+                        return false;
+                      }
+                    );
+                  },
+                  (_, error) => {
+                    console.error("Error inserting version:", error);
+                    reject(error);
+                    return false;
+                  }
                 );
-              }
-            );
-
-            // Create meals table with all required columns
-            tx.executeSql(
-              `CREATE TABLE IF NOT EXISTS meals (
-                meal_id TEXT PRIMARY KEY,
-                image_uri TEXT NOT NULL,
-                favorite INTEGER DEFAULT 0,
-                status TEXT DEFAULT 'analyzing',
-                created_at INTEGER NOT NULL,
-                last_analysis TEXT,
-                error_message TEXT
-              );`,
-              [],
-              () => {
-                resolve();
               },
               (_, error) => {
-                console.error("Error creating meals table:", error);
+                console.error("Error creating version table:", error);
                 reject(error);
                 return false;
               }
@@ -82,35 +93,73 @@ const setupDatabaseAsync = async (): Promise<void> => {
                     `Migrating database from version ${currentVersion} to ${DB_VERSION}`
                   );
 
-                  // Drop and recreate tables to ensure correct schema
-                  tx.executeSql("DROP TABLE IF EXISTS meals;", [], () => {
-                    tx.executeSql(
-                      `CREATE TABLE meals (
-                        meal_id TEXT PRIMARY KEY,
-                        image_uri TEXT NOT NULL,
-                        favorite INTEGER DEFAULT 0,
-                        status TEXT DEFAULT 'analyzing',
-                        created_at INTEGER NOT NULL,
-                        last_analysis TEXT,
-                        error_message TEXT
-                      );`,
-                      [],
-                      () => {
-                        // Update version number
+                  // Add any missing columns instead of dropping the table
+                  tx.executeSql(
+                    "SELECT sql FROM sqlite_master WHERE type='table' AND name='meals';",
+                    [],
+                    (_, tableResult) => {
+                      const tableSchema = tableResult.rows.item(0).sql;
+
+                      // Check if error_message column exists
+                      if (!tableSchema.includes("error_message")) {
+                        tx.executeSql(
+                          "ALTER TABLE meals ADD COLUMN error_message TEXT;",
+                          [],
+                          () => {
+                            // Update version number after successful migration
+                            tx.executeSql(
+                              "UPDATE version SET version = ? WHERE id = 1;",
+                              [DB_VERSION],
+                              () => {
+                                resolve();
+                              },
+                              (_, error) => {
+                                console.error("Error updating version:", error);
+                                reject(error);
+                                return false;
+                              }
+                            );
+                          },
+                          (_, error) => {
+                            console.error(
+                              "Error adding error_message column:",
+                              error
+                            );
+                            reject(error);
+                            return false;
+                          }
+                        );
+                      } else {
+                        // Column already exists, just update version
                         tx.executeSql(
                           "UPDATE version SET version = ? WHERE id = 1;",
                           [DB_VERSION],
                           () => {
                             resolve();
+                          },
+                          (_, error) => {
+                            console.error("Error updating version:", error);
+                            reject(error);
+                            return false;
                           }
                         );
                       }
-                    );
-                  });
+                    },
+                    (_, error) => {
+                      console.error("Error checking table schema:", error);
+                      reject(error);
+                      return false;
+                    }
+                  );
                 } else {
                   // Database is up to date
                   resolve();
                 }
+              },
+              (_, error) => {
+                console.error("Error checking version:", error);
+                reject(error);
+                return false;
               }
             );
           }
