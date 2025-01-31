@@ -1,6 +1,6 @@
 export interface Ingredient {
   name: string;
-  amount: number;
+  weight: number;
   carbs: number;
   proteins: number;
   fats: number;

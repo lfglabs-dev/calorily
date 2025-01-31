@@ -67,7 +67,7 @@ const NewMeal: React.FC<NewMealProps> = ({ prefilledMeal }) => {
   const calories = React.useMemo(() => {
     return calculateCalories({
       name: "temp",
-      amount: 100,
+      weight: 100,
       carbs: formData.carbs || 0,
       proteins: formData.proteins || 0,
       fats: formData.fats || 0,
@@ -106,7 +106,7 @@ const NewMeal: React.FC<NewMealProps> = ({ prefilledMeal }) => {
         ingredients: [
           {
             name: formData.mealName || "Custom Meal",
-            amount: 100,
+            weight: 100,
             carbs: formData.carbs || 0,
             proteins: formData.proteins || 0,
             fats: formData.fats || 0,
