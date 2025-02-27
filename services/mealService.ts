@@ -3,6 +3,7 @@ import * as SQLite from "expo-sqlite";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import { StoredMeal } from "../types";
 import { eventBus } from "./eventBus";
+import { isTokenValid } from "../shared/AuthContext";
 
 const db = SQLite.openDatabase("meals.db");
 
@@ -15,9 +16,40 @@ export const mealService = {
   async uploadMeal(
     imageUri: string,
     mealId: string,
-    jwt: string
+    jwt: string,
+    refreshTokenFn?: () => Promise<string | null>
   ): Promise<UploadMealResponse> {
     try {
+      // Check if token is valid
+      if (!jwt) {
+        throw new Error("No authentication token provided");
+      }
+
+      // Check token validity
+      if (!isTokenValid(jwt)) {
+        console.log("Token is expired, attempting to refresh...");
+
+        // If refresh function is provided, try to refresh the token
+        if (refreshTokenFn) {
+          try {
+            const newToken = await refreshTokenFn();
+            if (newToken) {
+              console.log("Token refreshed successfully");
+              jwt = newToken;
+            } else {
+              throw new Error("Failed to refresh authentication token");
+            }
+          } catch (refreshError) {
+            console.error("Token refresh failed:", refreshError);
+            throw new Error("Your session has expired. Please sign in again.");
+          }
+        } else {
+          throw new Error(
+            "Authentication token has expired. Please sign in again."
+          );
+        }
+      }
+
       // Log original file info
       const fileInfo = await FileSystem.getInfoAsync(imageUri, { size: true });
       if (!fileInfo.exists) {

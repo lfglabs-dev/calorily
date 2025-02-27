@@ -10,7 +10,7 @@ export const useAddMeal = () => {
   const [loading, setLoading] = useState(false);
   const { insertMeal, addOptimisticMeal, updateOptimisticMeal } =
     useMealsDatabase();
-  const { jwt } = useAuth();
+  const { jwt, refreshToken } = useAuth();
 
   const handleImagesUpload = async (imageUris: string[]) => {
     console.log("Starting multiple image upload:", imageUris);
@@ -24,7 +24,12 @@ export const useAddMeal = () => {
         addOptimisticMeal(mealId, imageUri);
 
         console.log("Uploading to server...");
-        const response = await mealService.uploadMeal(imageUri, mealId, jwt);
+        const response = await mealService.uploadMeal(
+          imageUri,
+          mealId,
+          jwt,
+          refreshToken
+        );
         console.log("Server response:", response);
 
         console.log("Updating optimistic meal status to analyzing...");
@@ -50,6 +55,14 @@ export const useAddMeal = () => {
           status: "error",
           error_message: error.message || "Failed to upload image",
         });
+
+        // Show alert with the error message
+        Alert.alert(
+          "Upload Failed",
+          error.message || "Failed to upload image. Please try again.",
+          [{ text: "OK" }]
+        );
+
         return false;
       }
     });

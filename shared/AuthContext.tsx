@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Buffer } from "buffer";
+import * as AppleAuthentication from "expo-apple-authentication";
 
 interface JWTPayload {
   exp: number;
@@ -23,13 +24,14 @@ interface AuthContextType {
   signIn: (token: string) => Promise<void>;
   signOut: () => Promise<void>;
   isAuthenticated: boolean;
+  refreshToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const JWT_KEY = "calorily_jwt";
 
-function isTokenValid(token: string): boolean {
+export function isTokenValid(token: string): boolean {
   try {
     const decoded = decodeJWT(token);
     const isValid = decoded.exp * 1000 > Date.now();
@@ -89,6 +91,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const refreshToken = async () => {
+    try {
+      console.log("Attempting to refresh token with Apple Sign In");
+
+      // Request a new identity token from Apple
+      const appleAuthCredential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+      });
+
+      if (!appleAuthCredential.identityToken) {
+        throw new Error("Failed to get Apple identity token");
+      }
+
+      // Call your auth/apple endpoint with the new identity token
+      const response = await fetch("https://api.calorily.com/auth/apple", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          identity_token: appleAuthCredential.identityToken,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Token refresh failed:", errorText);
+        throw new Error("Failed to refresh token");
+      }
+
+      const { jwt: newToken } = await response.json();
+
+      // Save the new token
+      await AsyncStorage.setItem(JWT_KEY, newToken);
+      setJwt(newToken);
+
+      console.log("Token refreshed successfully");
+      return newToken;
+    } catch (error) {
+      console.error("Error refreshing token:", error);
+      // If refresh fails, sign out
+      await signOut();
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -96,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         signIn,
         signOut,
+        refreshToken,
         isAuthenticated: !!jwt,
       }}
     >
