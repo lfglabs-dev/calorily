@@ -661,10 +661,51 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     setWeeklyMeals((prev) => prev.filter((meal) => meal.meal_id !== mealId));
 
     try {
+      // Delete from local database first
       await deleteMealFromDB(mealId);
+
+      // Then delete from the backend
+      if (jwt) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+          const response = await fetch(
+            `https://api.calorily.com/meals/${mealId}`,
+            {
+              method: "DELETE",
+              headers: { Authorization: `Bearer ${jwt}` },
+              signal: controller.signal,
+            }
+          );
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+              `Backend deletion failed with status: ${response.status}`,
+              errorText
+            );
+            // We don't throw here because the meal is already deleted from local DB
+            // and we want to keep the optimistic UI update
+          } else {
+            console.log(`Successfully deleted meal ${mealId} from backend`);
+          }
+        } catch (backendError) {
+          if (backendError.name === "AbortError") {
+            console.log("Backend delete request timed out");
+          } else {
+            console.error("Error deleting meal from backend:", backendError);
+          }
+          // Again, don't throw as local deletion was successful
+        }
+      } else {
+        console.log("No JWT available, skipping backend deletion");
+      }
     } catch (error) {
-      console.error("Error deleting meal:", error);
-      // If deletion fails, remove from deleted set using ref
+      console.error("Error deleting meal from local DB:", error);
+      // If local deletion fails, remove from deleted set using ref
       deletedMealIdsRef.current.delete(mealId);
       // Refresh meals to restore state
       await refreshMeals();
