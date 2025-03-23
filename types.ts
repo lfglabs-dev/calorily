@@ -21,6 +21,7 @@ export interface StoredMeal {
   created_at: number;
   last_analysis?: MealAnalysis;
   error_message?: string;
+  healthkit_object_id?: string;
 }
 
 export type MealStatus = "uploading" | "analyzing" | "complete" | "error";

@@ -18,10 +18,17 @@ import { AppState } from "react-native";
 import { mealService } from "../services/mealService";
 import { eventBus } from "../services/eventBus";
 import { v4 as uuidv4 } from "uuid";
+import { useHealthData } from "./HealthDataContext";
+import {
+  totalCarbs,
+  totalProteins,
+  totalFats,
+  calculateCalories,
+} from "../utils/food";
 
 const db = SQLite.openDatabase("meals.db");
 
-const DB_VERSION = 5; // Increment for new schema with created_at index
+const DB_VERSION = 6; // Increment version to trigger schema update
 
 const setupDatabaseAsync = async (): Promise<void> => {
   return new Promise((resolve, reject) => {
@@ -36,61 +43,7 @@ const setupDatabaseAsync = async (): Promise<void> => {
           if (!versionTableExists) {
             // If version table doesn't exist, this is a fresh install
             // Create version table and set initial version
-            tx.executeSql(
-              "CREATE TABLE IF NOT EXISTS version (id INTEGER PRIMARY KEY CHECK (id = 1), version INTEGER);",
-              [],
-              (_, createResult) => {
-                tx.executeSql(
-                  "INSERT INTO version (id, version) VALUES (1, ?);",
-                  [DB_VERSION],
-                  (_, insertResult) => {
-                    // Create meals table with all required columns
-                    tx.executeSql(
-                      `CREATE TABLE IF NOT EXISTS meals (
-                        meal_id TEXT PRIMARY KEY,
-                        image_uri TEXT NOT NULL,
-                        favorite INTEGER DEFAULT 0,
-                        status TEXT DEFAULT 'analyzing',
-                        created_at INTEGER NOT NULL,
-                        last_analysis TEXT,
-                        error_message TEXT
-                      );`,
-                      [],
-                      () => {
-                        // Create index on created_at column for faster timestamp-based queries
-                        tx.executeSql(
-                          "CREATE INDEX IF NOT EXISTS idx_meals_created_at ON meals (created_at DESC);",
-                          [],
-                          () => {
-                            resolve();
-                          },
-                          (_, error) => {
-                            console.error("Error creating index:", error);
-                            reject(error);
-                            return false;
-                          }
-                        );
-                      },
-                      (_, error) => {
-                        console.error("Error creating meals table:", error);
-                        reject(error);
-                        return false;
-                      }
-                    );
-                  },
-                  (_, error) => {
-                    console.error("Error inserting version:", error);
-                    reject(error);
-                    return false;
-                  }
-                );
-              },
-              (_, error) => {
-                console.error("Error creating version table:", error);
-                reject(error);
-                return false;
-              }
-            );
+            createTablesWithLatestSchema(tx, DB_VERSION, resolve, reject);
           } else {
             // Version table exists, check version number
             tx.executeSql(
@@ -100,130 +53,98 @@ const setupDatabaseAsync = async (): Promise<void> => {
                 const currentVersion = versionResult.rows.item(0)?.version || 0;
 
                 if (currentVersion < DB_VERSION) {
-                  // Handle migration if needed
+                  // We need to update the schema - simplest approach is to drop and recreate
                   console.log(
-                    `Migrating database from version ${currentVersion} to ${DB_VERSION}`
+                    `Updating database from version ${currentVersion} to ${DB_VERSION}`
                   );
 
-                  // Add any missing columns instead of dropping the table
+                  // First, get all existing meals to preserve them
                   tx.executeSql(
-                    "SELECT sql FROM sqlite_master WHERE type='table' AND name='meals';",
+                    "SELECT * FROM meals",
                     [],
-                    (_, tableResult) => {
-                      const tableSchema = tableResult.rows.item(0).sql;
+                    (_, mealsResult) => {
+                      const meals = mealsResult.rows._array || [];
 
-                      // Check if error_message column exists
-                      if (!tableSchema.includes("error_message")) {
-                        tx.executeSql(
-                          "ALTER TABLE meals ADD COLUMN error_message TEXT;",
-                          [],
-                          () => {
-                            // Create index on created_at column if version is being upgraded to 5
-                            if (currentVersion < 5) {
-                              tx.executeSql(
-                                "CREATE INDEX IF NOT EXISTS idx_meals_created_at ON meals (created_at DESC);",
-                                [],
-                                () => {
-                                  // Update version number after successful migration
-                                  tx.executeSql(
-                                    "UPDATE version SET version = ? WHERE id = 1;",
-                                    [DB_VERSION],
-                                    () => {
-                                      resolve();
-                                    },
-                                    (_, error) => {
-                                      console.error(
-                                        "Error updating version:",
-                                        error
-                                      );
-                                      reject(error);
-                                      return false;
-                                    }
-                                  );
-                                },
-                                (_, error) => {
-                                  console.error("Error creating index:", error);
-                                  reject(error);
-                                  return false;
-                                }
-                              );
-                            } else {
-                              // Update version number after successful migration
-                              tx.executeSql(
-                                "UPDATE version SET version = ? WHERE id = 1;",
-                                [DB_VERSION],
-                                () => {
-                                  resolve();
-                                },
-                                (_, error) => {
-                                  console.error(
-                                    "Error updating version:",
-                                    error
-                                  );
-                                  reject(error);
-                                  return false;
-                                }
-                              );
-                            }
-                          },
-                          (_, error) => {
-                            console.error(
-                              "Error adding error_message column:",
-                              error
-                            );
-                            reject(error);
-                            return false;
-                          }
-                        );
-                      } else {
-                        // Create index on created_at column if version is being upgraded to 5
-                        if (currentVersion < 5) {
-                          tx.executeSql(
-                            "CREATE INDEX IF NOT EXISTS idx_meals_created_at ON meals (created_at DESC);",
-                            [],
+                      // Drop existing meals table
+                      tx.executeSql(
+                        "DROP TABLE IF EXISTS meals",
+                        [],
+                        () => {
+                          // Recreate tables with latest schema
+                          createTablesWithLatestSchema(
+                            tx,
+                            DB_VERSION,
                             () => {
-                              // Update version number after successful migration
-                              tx.executeSql(
-                                "UPDATE version SET version = ? WHERE id = 1;",
-                                [DB_VERSION],
-                                () => {
-                                  resolve();
-                                },
-                                (_, error) => {
-                                  console.error(
-                                    "Error updating version:",
-                                    error
-                                  );
-                                  reject(error);
-                                  return false;
-                                }
-                              );
+                              // Reinsert meals data
+                              if (meals.length > 0) {
+                                const reinsertPromises = meals.map(
+                                  (meal) =>
+                                    new Promise<void>(
+                                      (resolveMeal, rejectMeal) => {
+                                        // Convert analysis JSON string back to object if it exists
+                                        let analysis = null;
+                                        if (meal.last_analysis) {
+                                          try {
+                                            analysis = JSON.stringify(
+                                              JSON.parse(meal.last_analysis)
+                                            );
+                                          } catch (e) {
+                                            console.error(
+                                              "Error parsing analysis:",
+                                              e
+                                            );
+                                          }
+                                        }
+
+                                        tx.executeSql(
+                                          `INSERT INTO meals (
+                                      meal_id, image_uri, favorite, status, 
+                                      created_at, last_analysis, error_message, 
+                                      healthkit_object_id
+                                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                                          [
+                                            meal.meal_id,
+                                            meal.image_uri,
+                                            meal.favorite || 0,
+                                            meal.status || "complete",
+                                            meal.created_at,
+                                            analysis,
+                                            meal.error_message,
+                                            null, // New meals won't have a healthkit_object_id
+                                          ],
+                                          () => resolveMeal(),
+                                          (_, err) => {
+                                            console.error(
+                                              "Error reinserting meal:",
+                                              err
+                                            );
+                                            resolveMeal(); // Continue even if one meal fails
+                                            return false;
+                                          }
+                                        );
+                                      }
+                                    )
+                                );
+
+                                Promise.all(reinsertPromises)
+                                  .then(() => resolve())
+                                  .catch((err) => reject(err));
+                              } else {
+                                resolve();
+                              }
                             },
-                            (_, error) => {
-                              console.error("Error creating index:", error);
-                              reject(error);
-                              return false;
-                            }
+                            reject
                           );
-                        } else {
-                          // Column already exists, just update version
-                          tx.executeSql(
-                            "UPDATE version SET version = ? WHERE id = 1;",
-                            [DB_VERSION],
-                            () => {
-                              resolve();
-                            },
-                            (_, error) => {
-                              console.error("Error updating version:", error);
-                              reject(error);
-                              return false;
-                            }
-                          );
+                        },
+                        (_, error) => {
+                          console.error("Error dropping meals table:", error);
+                          reject(error);
+                          return false;
                         }
-                      }
+                      );
                     },
                     (_, error) => {
-                      console.error("Error checking table schema:", error);
+                      console.error("Error selecting existing meals:", error);
                       reject(error);
                       return false;
                     }
@@ -249,6 +170,87 @@ const setupDatabaseAsync = async (): Promise<void> => {
       );
     });
   });
+};
+
+// Helper function to create tables with the latest schema
+const createTablesWithLatestSchema = (
+  tx: SQLite.SQLTransaction,
+  version: number,
+  resolve: () => void,
+  reject: (error: any) => void
+) => {
+  // Create version table
+  tx.executeSql(
+    "CREATE TABLE IF NOT EXISTS version (id INTEGER PRIMARY KEY CHECK (id = 1), version INTEGER);",
+    [],
+    () => {
+      // Insert or update version
+      tx.executeSql(
+        "INSERT OR REPLACE INTO version (id, version) VALUES (1, ?);",
+        [version],
+        () => {
+          // Create meals table with all columns including healthkit_object_id
+          tx.executeSql(
+            `CREATE TABLE IF NOT EXISTS meals (
+              meal_id TEXT PRIMARY KEY,
+              image_uri TEXT NOT NULL,
+              favorite INTEGER DEFAULT 0,
+              status TEXT DEFAULT 'analyzing',
+              created_at INTEGER NOT NULL,
+              last_analysis TEXT,
+              error_message TEXT,
+              healthkit_object_id TEXT
+            );`,
+            [],
+            () => {
+              // Create indexes
+              tx.executeSql(
+                "CREATE INDEX IF NOT EXISTS idx_meals_created_at ON meals (created_at DESC);",
+                [],
+                () => {
+                  tx.executeSql(
+                    "CREATE INDEX IF NOT EXISTS idx_meals_healthkit_id ON meals (healthkit_object_id);",
+                    [],
+                    () => {
+                      resolve();
+                    },
+                    (_, error) => {
+                      console.error(
+                        "Error creating healthkit_object_id index:",
+                        error
+                      );
+                      reject(error);
+                      return false;
+                    }
+                  );
+                },
+                (_, error) => {
+                  console.error("Error creating created_at index:", error);
+                  reject(error);
+                  return false;
+                }
+              );
+            },
+            (_, error) => {
+              console.error("Error creating meals table:", error);
+              reject(error);
+              return false;
+            }
+          );
+        },
+        (_, error) => {
+          console.error("Error inserting version:", error);
+          reject(error);
+          return false;
+        }
+      );
+    },
+    (_, error) => {
+      console.error("Error creating version table:", error);
+      reject(error);
+      return false;
+    }
+  );
 };
 
 const fetchMealsSinceTimestamp = async (
@@ -465,11 +467,12 @@ const cleanupOldMeals = async () => {
 export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
   children,
 }) => {
+  const { jwt, refreshToken } = useAuth();
   const [dailyMeals, setDailyMeals] = useState<StoredMeal[]>([]);
   const [weeklyMeals, setWeeklyMeals] = useState<StoredMeal[]>([]);
   const { lastMessage } = useWebSocket();
-  const { jwt } = useAuth();
   const deletedMealIdsRef = useRef<Set<string>>(new Set());
+  const { saveFoodData, deleteFoodData } = useHealthData();
 
   // Add debug logging
   useEffect(() => {
@@ -603,6 +606,7 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     return new Promise<void>((resolve, reject) => {
       const timestamp = Date.now();
       const mealId = meal.meal_id || uuidv4();
+      let healthkitObjectId: string | null = null;
 
       console.log("Starting meal insertion:", {
         mealId,
@@ -611,44 +615,141 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
         timestamp,
       });
 
-      db.transaction(
-        (tx) => {
-          console.log("Beginning insert transaction");
-          tx.executeSql(
-            `INSERT INTO meals (
-              meal_id, 
-              image_uri, 
-              created_at,
-              status,
-              favorite,
-              last_analysis
-            ) VALUES (?, ?, ?, ?, ?, ?)`,
-            [
-              mealId,
-              meal.image_uri,
-              Math.floor(timestamp / 1000),
-              meal.status || "complete",
-              meal.favorite || 0,
-              meal.last_analysis ? JSON.stringify(meal.last_analysis) : null,
-            ],
-            (_, result) => {
-              console.log("Insert result:", result);
-              console.log("Meal inserted successfully");
-              eventBus.emit("mealsUpdated");
-              resolve();
-            },
-            (_, error) => {
-              console.error("SQL Error in insert:", error);
-              reject(error);
-              return false;
+      // Function to perform the database insertion
+      const performDatabaseInsertion = () => {
+        db.transaction(
+          (tx) => {
+            console.log("Beginning insert transaction");
+            tx.executeSql(
+              `INSERT INTO meals (
+                meal_id, 
+                image_uri, 
+                created_at,
+                status,
+                favorite,
+                last_analysis,
+                healthkit_object_id
+              ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+              [
+                mealId,
+                meal.image_uri,
+                Math.floor(timestamp / 1000),
+                meal.status || "complete",
+                meal.favorite || 0,
+                meal.last_analysis ? JSON.stringify(meal.last_analysis) : null,
+                healthkitObjectId,
+              ],
+              (_, result) => {
+                console.log("Insert result:", result);
+                console.log(
+                  "Meal inserted successfully with healthkit_object_id:",
+                  healthkitObjectId
+                );
+                eventBus.emit("mealsUpdated");
+                resolve();
+              },
+              (_, error) => {
+                console.error("SQL Error in insert:", error);
+                reject(error);
+                return false;
+              }
+            );
+          },
+          (error) => {
+            console.error("Transaction Error in insert:", error);
+            reject(error);
+          }
+        );
+      };
+
+      // If there's analysis data, try to save to HealthKit first
+      if (meal.last_analysis) {
+        try {
+          const analysis = meal.last_analysis;
+          const createdAt = meal.created_at || Math.floor(timestamp / 1000);
+          const date = new Date(createdAt * 1000).toISOString();
+
+          // Use individual utility functions to calculate nutritional values
+          const ingredients = analysis.ingredients || [];
+
+          // Only proceed if we have valid nutritional data
+          if (
+            ingredients.length > 0 &&
+            ingredients.some(
+              (ing) => ing.carbs > 0 || ing.proteins > 0 || ing.fats > 0
+            )
+          ) {
+            const carbsValue = totalCarbs(ingredients);
+            const proteinsValue = totalProteins(ingredients);
+            const fatsValue = totalFats(ingredients);
+
+            // Calculate total calories by summing calories from each ingredient
+            const totalCaloriesValue = ingredients.reduce(
+              (sum, ingredient) => sum + calculateCalories(ingredient),
+              0
+            );
+
+            // Only save to HealthKit if we have meaningful nutritional values
+            if (totalCaloriesValue > 0) {
+              console.log(
+                `Meal ${mealId} has valid nutritional data (${totalCaloriesValue} calories), saving to HealthKit`
+              );
+
+              // Prepare HealthKit food data
+              const healthkitOptions = {
+                foodName: analysis.meal_name || "Unknown Meal",
+                mealType: "Lunch", // Default to Lunch as we don't track meal types
+                date: date,
+                energy: totalCaloriesValue,
+                protein: proteinsValue,
+                carbohydrates: carbsValue,
+                fatTotal: fatsValue,
+                fiber: 0, // We don't track these values in our current data model
+                sugar: 0,
+                sodium: 0,
+              };
+
+              // Save to HealthKit and wait for the callback before proceeding
+              saveFoodData(healthkitOptions, (error, result) => {
+                if (!error && result) {
+                  // Set the healthkit object ID from the result
+                  healthkitObjectId = result.toString();
+                  console.log(
+                    `Saved meal ${mealId} to HealthKit with ID: ${healthkitObjectId}`
+                  );
+                } else {
+                  console.log(
+                    "Failed to save to HealthKit or no ID returned, continuing without HealthKit ID"
+                  );
+                }
+
+                // Proceed with database insertion after HealthKit operation completes
+                // (whether it succeeded or failed)
+                performDatabaseInsertion();
+              });
+
+              // Early return to prevent immediate database insertion
+              // It will be performed in the callback above
+              return;
+            } else {
+              console.log(
+                `Skipping HealthKit save for meal ${mealId} as it has zero calories`
+              );
             }
-          );
-        },
-        (error) => {
-          console.error("Transaction Error in insert:", error);
-          reject(error);
+          } else {
+            console.log(
+              `Skipping HealthKit save for meal ${mealId} as it has no valid nutritional data`
+            );
+          }
+        } catch (error) {
+          console.error("Error preparing HealthKit data:", error);
+          // Continue with database insertion even if HealthKit preparation fails
         }
-      );
+      }
+
+      // If we got here, we didn't save to HealthKit (no analysis data or it failed),
+      // so just do the database insertion directly
+      performDatabaseInsertion();
     });
   };
 
@@ -661,6 +762,56 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
     setWeeklyMeals((prev) => prev.filter((meal) => meal.meal_id !== mealId));
 
     try {
+      // Try to get the meal first to see if it has a healthkit_object_id
+      // This is wrapped in a try/catch to handle the case where the database
+      // might not have the healthkit_object_id column yet
+      try {
+        const mealData = await new Promise<any>((resolve, reject) => {
+          db.transaction((tx) => {
+            tx.executeSql(
+              "SELECT * FROM meals WHERE meal_id = ?",
+              [mealId],
+              (_, result) => {
+                if (result.rows.length > 0) {
+                  resolve(result.rows.item(0));
+                } else {
+                  resolve(null);
+                }
+              },
+              (_, error) => {
+                reject(error);
+                return false;
+              }
+            );
+          });
+        });
+
+        // If there's a HealthKit object ID, delete from HealthKit
+        if (mealData && mealData.healthkit_object_id) {
+          try {
+            const createdAt = new Date(mealData.created_at * 1000);
+            const startDate = createdAt.toISOString();
+            // End date is 1 minute later (arbitrary small window)
+            const endDate = new Date(createdAt.getTime() + 60000).toISOString();
+
+            await deleteFoodData({
+              startDate,
+              endDate,
+              objectId: mealData.healthkit_object_id,
+            });
+
+            console.log(`Successfully deleted meal ${mealId} from HealthKit`);
+          } catch (healthkitError) {
+            console.error("Error deleting from HealthKit:", healthkitError);
+            // Continue with database deletion even if HealthKit fails
+          }
+        }
+      } catch (dbError) {
+        // If there's an error with the database query (e.g., column doesn't exist),
+        // log it but continue with deletion
+        console.error("Error querying for healthkit_object_id:", dbError);
+      }
+
       // Delete from local database first
       await deleteMealFromDB(mealId);
 
@@ -721,28 +872,169 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
       timestamp: data.timestamp,
     };
 
-    updateMeal({
-      meal_id: mealId,
-      status: "complete",
-      last_analysis: analysisData,
-    })
-      .then(() => {
-        setWeeklyMeals((prevMeals) => {
-          return prevMeals.map((meal) => {
-            if (meal.meal_id === mealId) {
-              return {
-                ...meal,
-                status: "complete",
-                last_analysis: analysisData,
-              };
+    // First, get the current meal data to check if we need to update HealthKit
+    db.transaction((tx) => {
+      tx.executeSql(
+        "SELECT * FROM meals WHERE meal_id = ?",
+        [mealId],
+        async (_, result) => {
+          if (result.rows.length > 0) {
+            const existingMeal = result.rows.item(0);
+
+            // If we receive analysis data for a meal that was previously inserted,
+            // and it doesn't have a HealthKit ID yet, save it to HealthKit now
+            if (
+              !existingMeal.healthkit_object_id &&
+              analysisData.ingredients &&
+              analysisData.ingredients.length > 0
+            ) {
+              try {
+                const createdAt = existingMeal.created_at;
+                const date = new Date(createdAt * 1000).toISOString();
+
+                // Use individual utility functions to calculate nutritional values
+                const ingredients = analysisData.ingredients || [];
+
+                // Only proceed if we have valid nutritional data
+                if (
+                  ingredients.some(
+                    (ing) => ing.carbs > 0 || ing.proteins > 0 || ing.fats > 0
+                  )
+                ) {
+                  const carbsValue = totalCarbs(ingredients);
+                  const proteinsValue = totalProteins(ingredients);
+                  const fatsValue = totalFats(ingredients);
+
+                  // Calculate total calories by summing calories from each ingredient
+                  const totalCaloriesValue = ingredients.reduce(
+                    (sum, ingredient) => sum + calculateCalories(ingredient),
+                    0
+                  );
+
+                  // Only save to HealthKit if we have meaningful nutritional values
+                  if (totalCaloriesValue > 0) {
+                    console.log(
+                      `Meal ${mealId} has valid nutritional data (${totalCaloriesValue} calories), saving to HealthKit`
+                    );
+
+                    // Prepare HealthKit food data
+                    const healthkitOptions = {
+                      foodName: analysisData.meal_name || "Unknown Meal",
+                      mealType: "Lunch", // Default to Lunch as we don't track meal types
+                      date: date,
+                      energy: totalCaloriesValue,
+                      protein: proteinsValue,
+                      carbohydrates: carbsValue,
+                      fatTotal: fatsValue,
+                      fiber: 0,
+                      sugar: 0,
+                      sodium: 0,
+                    };
+
+                    // Save to HealthKit and wait for callback
+                    let healthkitObjectId: string | null = null;
+
+                    // Use a promise to wait for the HealthKit operation to complete
+                    await new Promise<void>((resolveHealthKit) => {
+                      saveFoodData(healthkitOptions, (error, result) => {
+                        if (!error && result) {
+                          healthkitObjectId = result.toString();
+                          console.log(
+                            `Saved meal ${mealId} to HealthKit with ID: ${healthkitObjectId} during analysis update`
+                          );
+                        }
+                        resolveHealthKit();
+                      });
+                    });
+
+                    // Update the meal with HealthKit ID if available
+                    if (healthkitObjectId) {
+                      updateMeal({
+                        meal_id: mealId,
+                        status: "complete",
+                        last_analysis: analysisData,
+                        healthkit_object_id: healthkitObjectId,
+                      });
+                      return; // Early return as updateMeal will handle the state update
+                    }
+                  } else {
+                    console.log(
+                      `Skipping HealthKit save for meal ${mealId} as it has zero calories`
+                    );
+                  }
+                } else {
+                  console.log(
+                    `Skipping HealthKit save for meal ${mealId} as it has no valid nutritional data`
+                  );
+                }
+              } catch (error) {
+                console.error(
+                  "Error saving to HealthKit during analysis update:",
+                  error
+                );
+                // Continue with regular update if HealthKit fails
+              }
             }
-            return meal;
-          });
-        });
+
+            // Fall through to regular update if HealthKit update isn't needed or fails
+            updateMeal({
+              meal_id: mealId,
+              status: "complete",
+              last_analysis: analysisData,
+            })
+              .then(() => {
+                setWeeklyMeals((prevMeals) => {
+                  return prevMeals.map((meal) => {
+                    if (meal.meal_id === mealId) {
+                      return {
+                        ...meal,
+                        status: "complete",
+                        last_analysis: analysisData,
+                      };
+                    }
+                    return meal;
+                  });
+                });
+              })
+              .catch((error) => {
+                console.error("Error updating meal in DB:", error);
+              });
+          }
+        },
+        (_, error) => {
+          console.error("Error querying meal for HealthKit update:", error);
+          // Fall back to standard update
+          standardUpdate();
+          return false;
+        }
+      );
+    });
+
+    // Standard update function for fallback
+    const standardUpdate = () => {
+      updateMeal({
+        meal_id: mealId,
+        status: "complete",
+        last_analysis: analysisData,
       })
-      .catch((error) => {
-        console.error("Error updating meal in DB:", error);
-      });
+        .then(() => {
+          setWeeklyMeals((prevMeals) => {
+            return prevMeals.map((meal) => {
+              if (meal.meal_id === mealId) {
+                return {
+                  ...meal,
+                  status: "complete",
+                  last_analysis: analysisData,
+                };
+              }
+              return meal;
+            });
+          });
+        })
+        .catch((error) => {
+          console.error("Error updating meal in DB:", error);
+        });
+    };
   };
 
   const syncMeals = async () => {
