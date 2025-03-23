@@ -33,9 +33,13 @@ type HealthDataContextType = {
   fetchLatestWeight: () => void;
   fetchLatestBodyFatPercentage: () => void;
   estimateBMR: () => Promise<number>;
-  saveFoodData: (options: Object) => void;
+  saveFoodData: (
+    options: Object,
+    callback?: (error: string, result: any) => void
+  ) => void;
   getCurrentWeight: () => Promise<number | null>;
   initializeHealthKit: (permissions: HealthKitPermissions) => Promise<void>;
+  deleteFoodData: (options: Object) => Promise<boolean>;
 };
 
 const defaultContext: HealthDataContextType = {
@@ -69,6 +73,9 @@ const defaultContext: HealthDataContextType = {
     });
   },
   initializeHealthKit: async () => {},
+  deleteFoodData: async () => {
+    return false;
+  },
 };
 
 export const HealthDataContext =
@@ -285,13 +292,61 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
     }
   };
 
-  const saveFoodData = (options: Object) => {
-    AppleHealthKit.saveFood(options, (error: string, result: HealthValue) => {
+  const saveFoodData = (
+    options: Object,
+    callback?: (error: string, result: any) => void
+  ) => {
+    if (Platform.OS !== "ios") {
+      console.log("HealthKit is only available on iOS");
+      if (callback) callback("HealthKit is only available on iOS", null);
+      return;
+    }
+
+    console.log(
+      "Saving food to HealthKit with options:",
+      JSON.stringify(options)
+    );
+
+    AppleHealthKit.saveFood(options, (error: string, result: any) => {
       if (error) {
         console.error("Error saving food to HealthKit:", error);
+        if (callback) callback(error, null);
       } else {
-        console.log("Food saved successfully:", result);
+        // Result should be the UUID of the saved food item
+        console.log("Food saved successfully to HealthKit with ID:", result);
+        if (callback) callback(null, result);
       }
+    });
+  };
+
+  const deleteFoodData = (options: Object): Promise<boolean> => {
+    return new Promise((resolve, reject) => {
+      if (Platform.OS !== "ios") {
+        console.log("HealthKit is only available on iOS");
+        resolve(false); // Resolve instead of reject to avoid crashing
+        return;
+      }
+
+      console.log(
+        "Attempting to delete food from HealthKit with options:",
+        JSON.stringify(options)
+      );
+
+      AppleHealthKit.deleteFood(options, (err: Object, success: number) => {
+        if (err) {
+          console.error("Error deleting food from HealthKit:", err);
+          reject(err);
+          return;
+        }
+
+        console.log(
+          success === 1
+            ? "Successfully deleted food from HealthKit"
+            : "No matching HealthKit entries found to delete"
+        );
+
+        resolve(true);
+      });
     });
   };
 
@@ -326,6 +381,7 @@ export const HealthDataProvider: React.FC<HealthDataProviderProps> = ({
           });
         },
         initializeHealthKit,
+        deleteFoodData,
       }}
     >
       {children}

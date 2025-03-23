@@ -67,31 +67,55 @@ function AppContent() {
   const [isSubscribed, setIsSubscribed] = useState<boolean | undefined>(true);
   const { isAuthenticated } = useAuth();
   const { hasCompletedOnboarding } = useOnboarding();
+  const [isCheckingSubscription, setIsCheckingSubscription] = useState(false);
 
-  // Configure Purchases
+  // Configure Purchases and check subscription status
   useEffect(() => {
+    let isMounted = true;
+
     const checkSubscription = async () => {
+      // If already checking, don't start another check
+      if (isCheckingSubscription) return;
+
       try {
+        setIsCheckingSubscription(true);
+
         // First try to get cached status
         const cachedStatus = await AsyncStorage.getItem("subscription_status");
         console.log("cachedStatus:", cachedStatus);
-        if (cachedStatus) {
+        if (cachedStatus && isMounted) {
           setIsSubscribed(cachedStatus === "true");
         }
 
         // Then check with server
         const info = await Purchases.getCustomerInfo();
-        const offerings = await Purchases.getOfferings();
-        const newStatus =
-          !Boolean(offerings?.current?.availablePackages) ||
-          (info.entitlements.active !== undefined &&
-            Object.keys(info.entitlements.active).length > 0);
 
-        setIsSubscribed(newStatus);
-        await AsyncStorage.setItem("subscription_status", newStatus.toString());
+        // Add a small delay to prevent concurrent requests
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        const offerings = await Purchases.getOfferings();
+
+        if (isMounted) {
+          const newStatus =
+            !Boolean(offerings?.current?.availablePackages) ||
+            (info.entitlements.active !== undefined &&
+              Object.keys(info.entitlements.active).length > 0);
+
+          setIsSubscribed(newStatus);
+          await AsyncStorage.setItem(
+            "subscription_status",
+            newStatus.toString()
+          );
+        }
       } catch (error) {
         console.error("Error fetching offerings:", error);
-        setIsSubscribed(true); // Default to true in case of error
+        if (isMounted) {
+          setIsSubscribed(true); // Default to true in case of error
+        }
+      } finally {
+        if (isMounted) {
+          setIsCheckingSubscription(false);
+        }
       }
     };
 
@@ -100,40 +124,16 @@ function AppContent() {
       ios: "appl_COIKdnlfZBhFYGEJZtloMNajqdr",
       android: "todo_google_api_key",
     });
+
     if (apiKey) {
       Purchases.configure({ apiKey });
       checkSubscription();
     }
-  }, []);
 
-  // Configure Purchases
-  useEffect(() => {
-    Purchases.setLogLevel(Purchases.LOG_LEVEL.VERBOSE);
-    const apiKey = Platform.select({
-      ios: "appl_COIKdnlfZBhFYGEJZtloMNajqdr",
-      android: "todo_google_api_key",
-    });
-    if (apiKey) {
-      Purchases.configure({ apiKey });
-      const getPackages = async () => {
-        try {
-          const info = await Purchases.getCustomerInfo();
-          const offerings = await Purchases.getOfferings();
-          console.log("Checking subscription status...");
-          setIsSubscribed(
-            !Boolean(offerings?.current?.availablePackages) ||
-              (info.entitlements.active !== undefined &&
-                Object.keys(info.entitlements.active).length > 0)
-          );
-        } catch (error) {
-          console.error("Error fetching offerings:", error);
-          setIsSubscribed(true); // Default to true in case of error to allow app access
-        }
-      };
-
-      getPackages();
-    }
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, [isCheckingSubscription]);
 
   const handleSubscribe = async (chosenPackage: PurchasesPackage) => {
     try {
@@ -141,6 +141,7 @@ function AppContent() {
       const entitlements = await Purchases.getCustomerInfo();
       if (entitlements.entitlements.active !== undefined) {
         setIsSubscribed(true);
+        await AsyncStorage.setItem("subscription_status", "true");
       }
     } catch (error) {
       console.error("Error subscribing:", error);
