@@ -21,7 +21,7 @@ import { v4 as uuidv4 } from "uuid";
 
 const db = SQLite.openDatabase("meals.db");
 
-const DB_VERSION = 4; // Increment for new schema with error_message
+const DB_VERSION = 5; // Increment for new schema with created_at index
 
 const setupDatabaseAsync = async (): Promise<void> => {
   return new Promise((resolve, reject) => {
@@ -57,7 +57,19 @@ const setupDatabaseAsync = async (): Promise<void> => {
                       );`,
                       [],
                       () => {
-                        resolve();
+                        // Create index on created_at column for faster timestamp-based queries
+                        tx.executeSql(
+                          "CREATE INDEX IF NOT EXISTS idx_meals_created_at ON meals (created_at DESC);",
+                          [],
+                          () => {
+                            resolve();
+                          },
+                          (_, error) => {
+                            console.error("Error creating index:", error);
+                            reject(error);
+                            return false;
+                          }
+                        );
                       },
                       (_, error) => {
                         console.error("Error creating meals table:", error);
@@ -106,19 +118,53 @@ const setupDatabaseAsync = async (): Promise<void> => {
                           "ALTER TABLE meals ADD COLUMN error_message TEXT;",
                           [],
                           () => {
-                            // Update version number after successful migration
-                            tx.executeSql(
-                              "UPDATE version SET version = ? WHERE id = 1;",
-                              [DB_VERSION],
-                              () => {
-                                resolve();
-                              },
-                              (_, error) => {
-                                console.error("Error updating version:", error);
-                                reject(error);
-                                return false;
-                              }
-                            );
+                            // Create index on created_at column if version is being upgraded to 5
+                            if (currentVersion < 5) {
+                              tx.executeSql(
+                                "CREATE INDEX IF NOT EXISTS idx_meals_created_at ON meals (created_at DESC);",
+                                [],
+                                () => {
+                                  // Update version number after successful migration
+                                  tx.executeSql(
+                                    "UPDATE version SET version = ? WHERE id = 1;",
+                                    [DB_VERSION],
+                                    () => {
+                                      resolve();
+                                    },
+                                    (_, error) => {
+                                      console.error(
+                                        "Error updating version:",
+                                        error
+                                      );
+                                      reject(error);
+                                      return false;
+                                    }
+                                  );
+                                },
+                                (_, error) => {
+                                  console.error("Error creating index:", error);
+                                  reject(error);
+                                  return false;
+                                }
+                              );
+                            } else {
+                              // Update version number after successful migration
+                              tx.executeSql(
+                                "UPDATE version SET version = ? WHERE id = 1;",
+                                [DB_VERSION],
+                                () => {
+                                  resolve();
+                                },
+                                (_, error) => {
+                                  console.error(
+                                    "Error updating version:",
+                                    error
+                                  );
+                                  reject(error);
+                                  return false;
+                                }
+                              );
+                            }
                           },
                           (_, error) => {
                             console.error(
@@ -130,19 +176,50 @@ const setupDatabaseAsync = async (): Promise<void> => {
                           }
                         );
                       } else {
-                        // Column already exists, just update version
-                        tx.executeSql(
-                          "UPDATE version SET version = ? WHERE id = 1;",
-                          [DB_VERSION],
-                          () => {
-                            resolve();
-                          },
-                          (_, error) => {
-                            console.error("Error updating version:", error);
-                            reject(error);
-                            return false;
-                          }
-                        );
+                        // Create index on created_at column if version is being upgraded to 5
+                        if (currentVersion < 5) {
+                          tx.executeSql(
+                            "CREATE INDEX IF NOT EXISTS idx_meals_created_at ON meals (created_at DESC);",
+                            [],
+                            () => {
+                              // Update version number after successful migration
+                              tx.executeSql(
+                                "UPDATE version SET version = ? WHERE id = 1;",
+                                [DB_VERSION],
+                                () => {
+                                  resolve();
+                                },
+                                (_, error) => {
+                                  console.error(
+                                    "Error updating version:",
+                                    error
+                                  );
+                                  reject(error);
+                                  return false;
+                                }
+                              );
+                            },
+                            (_, error) => {
+                              console.error("Error creating index:", error);
+                              reject(error);
+                              return false;
+                            }
+                          );
+                        } else {
+                          // Column already exists, just update version
+                          tx.executeSql(
+                            "UPDATE version SET version = ? WHERE id = 1;",
+                            [DB_VERSION],
+                            () => {
+                              resolve();
+                            },
+                            (_, error) => {
+                              console.error("Error updating version:", error);
+                              reject(error);
+                              return false;
+                            }
+                          );
+                        }
                       }
                     },
                     (_, error) => {
