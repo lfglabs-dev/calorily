@@ -666,7 +666,16 @@ export const MealsDatabaseProvider: React.FC<ProviderProps> = ({
       if (meal.last_analysis) {
         try {
           const analysis = meal.last_analysis;
-          const createdAt = meal.created_at || Math.floor(timestamp / 1000);
+
+          // Ensure created_at is in seconds
+          let createdAt = meal.created_at || Math.floor(timestamp / 1000);
+
+          // Convert from milliseconds to seconds if needed (checking if it's too large to be seconds)
+          if (createdAt > 10000000000) {
+            // If timestamp is after year 2286, it's likely in milliseconds
+            createdAt = Math.floor(createdAt / 1000);
+          }
+
           const date = new Date(createdAt * 1000).toISOString();
 
           // Use individual utility functions to calculate nutritional values

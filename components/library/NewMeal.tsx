@@ -115,12 +115,14 @@ const NewMeal: React.FC<NewMealProps> = ({ prefilledMeal }) => {
         timestamp: new Date().toISOString(),
       };
 
+      const timestamp = Math.floor(Date.now() / 1000);
+
       await insertMeal({
         meal_id: analysis.meal_id,
         image_uri: formData.imageUri,
         status: "complete",
         last_analysis: analysis,
-        created_at: Date.now(),
+        created_at: timestamp,
       });
 
       setFormData({});
