@@ -66,6 +66,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           CFBundleTypeRole: "Viewer",
         },
       ],
+      ITSAppUsesNonExemptEncryption: false,
     },
   },
   android: {
@@ -88,6 +89,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     "expo-apple-authentication",
+    [
+      "react-native-fast-tflite",
+      {
+        enableCoreMLDelegate: true,
+      },
+    ],
   ],
   extra: {
     eas: {
